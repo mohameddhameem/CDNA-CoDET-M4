@@ -1,15 +1,21 @@
+# Core dependencies
 numpy>=1.24
 pandas>=2.0
 plotly>=5.0
 datasets
 matplotlib
 seaborn
-ipykernel
 networkx
 ogb>=1.3.6
 transformers==4.47.0
+tqdm
+
+# Notebook support
+ipykernel
+jupyter
 
 # PyTorch with CUDA 12.1
+# Note: For CPU-only or different CUDA versions, adjust the URLs
 -f https://download.pytorch.org/whl/cu121
 torch==2.5.1
 torchvision==0.20.1
@@ -22,3 +28,7 @@ torch-scatter
 torch-sparse
 torch-cluster
 torch-spline-conv
+
+# For Colab: If running in Colab, torch/torch_geometric are pre-installed
+# Comment out the PyTorch sections above and uncomment below:
+# !pip install -q datasets transformers==4.47.0 ogb tqdm

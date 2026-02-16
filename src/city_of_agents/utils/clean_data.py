@@ -7,7 +7,7 @@ from pathlib import Path
 
 
 def main():
-    base = Path(__file__).resolve().parent
+    base = Path(__file__).resolve().parent.parent.parent.parent
     input_path = base / "real_experiment_data.csv"
     output_path = base / "final_clean_data.csv"
 

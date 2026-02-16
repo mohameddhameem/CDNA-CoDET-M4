@@ -1,6 +1,6 @@
 """
 Build the 'City of Agents' 3D Visualization (Research Edition).
-- Visuals: Solid 'Buildings' (Meshes) representing code structure.
+- Visual: Solid 'Buildings' (Meshes) representing code structure.
 - Interaction: Improved 'Hitbox' system for reliable hovering.
 - Metrics: Adds 'Structural Efficiency' to analyze Model Verbosity vs. Complexity.
 """

@@ -75,8 +75,8 @@ def extract_model_from_filename(filename: str) -> str:
 
 
 def main():
-    dataset_dir = Path(__file__).resolve().parent / "dataset"
-    output_path = Path(__file__).resolve().parent / "real_experiment_data.csv"
+    dataset_dir = Path(__file__).resolve().parent.parent.parent.parent / "dataset"
+    output_path = Path(__file__).resolve().parent.parent.parent.parent / "real_experiment_data.csv"
 
     if not dataset_dir.is_dir():
         print(f"Dataset folder not found: {dataset_dir}")
