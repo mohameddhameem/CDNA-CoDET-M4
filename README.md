@@ -39,8 +39,8 @@ A framework for analyzing code structure, generating graph representations, and 
 
 ### Google Colab Setup
 
-1. Open the **Colab Setup Notebook**: [`notebooks/colab_setup.ipynb`](notebooks/colab_setup.ipynb)
-2. Run all cells to clone, install, and verify the setup
+1. Open the notebook: [`notebooks/colab_setup.ipynb`](notebooks/colab_setup.ipynb)
+2. Run all cells to clone the repo, install the package, and verify setup
 
 ## Project Structure
 
@@ -71,9 +71,10 @@ City-of-Agents-1/
 │           └── generate_simulation.py
 │
 ├── notebooks/                    # Jupyter notebooks for experiments
-│   ├── Colab_Setup.ipynb        # Google Colab setup guide
+│   ├── colab_setup.ipynb        # Google Colab setup guide
 │   ├── Experiment_1.ipynb
 │   ├── Experiment_Models.ipynb
+│   ├── test.ipynb
 │   ├── demo2.ipynb
 │   └── demo6.ipynb
 │
