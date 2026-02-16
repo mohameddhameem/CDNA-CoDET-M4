@@ -1,129 +1,300 @@
-# LLM-4-SE
-LLM for Software Engineering
+# City of Agents
 
-This repository contains experiments and utilities for using large language models
-to reason about and transform software systems as a "city of agents".
+A framework for analyzing code structure, generating graph representations, and visualizing software metrics.
 
-## Quick start
+## Quick Start
 
-1. **Create and activate a virtual environment** (recommended):
-   - `python -m venv .venv`
-   - Windows: `.\.venv\Scripts\activate`
-2. **Install dependencies**:
-   - `pip install -r requirements.txt`
-3. **Run an example pipeline** (from the repo root):
-   - `python build_city.py`
-   - or open one of the notebooks under `notebooks/` in Jupyter / VS Code.
+### Local Setup
 
-## Project structure
+1. **Clone the repository**:
+   ```bash
+   git clone https://github.com/mohameddhameem/City-of-Agents-1.git
+   cd City-of-Agents-1
+   ```
 
-- **Root Python scripts**: core utilities and pipelines for the project  
-  - `build_city.py`, `build_city_buildings.py`, `build_city_research.py`, `build_city_v2.py`  
-  - `clean_data.py`, `generate_simluation.py`, `universal_parser.py`  
-  - Graph/feature utilities: `ast2pyg.py`, `pyg_creator.py`, `create_feature.py`, `CodeCLIP.py`, `Joern.py`
+2. **Create and activate a virtual environment** (recommended):
+   ```bash
+   python -m venv .venv
+   
+   # Windows
+   .\.venv\Scripts\activate
+   
+   # Linux/Mac
+   source .venv/bin/activate
+   ```
 
-- **`notebooks/`**: interactive experimentation and demos  
-  - `Experiment_1.ipynb`  
-  - `demo2.ipynb`  
-  - `demo6.ipynb`
+3. **Install the package in editable mode**:
+   ```bash
+   pip install -e .
+   ```
 
-- **`outputs/`**: generated artifacts and data dumps  
-  - City visualizations: `city_map*.html`  
-  - Simulation data: `simulation_data.csv`
+4. **Run an example**:
+   ```bash
+   # Generate sample data
+   python -m city_of_agents.simulation.generate_simulation
+   
+   # Build visualization
+   python -m city_of_agents.builders.city
+   ```
 
-- **`scripts/`**: helper shell scripts  
-  - `scripts/generate_graphml.sh`
+### Google Colab Setup
 
-- **`requirements.txt`**: combined dependencies for data, modeling, and graph processing
+1. Open the notebook: [`notebooks/colab_setup.ipynb`](notebooks/colab_setup.ipynb)
+2. Run all cells to clone the repo, install the package, and verify setup
 
-## Golden sample dataset
+## Project Structure
 
-The `dataset/golden sample data` folder contains a **golden evaluation dataset**
-built from Codeforces problems and multiple code-generation models. It is intended
-for benchmarking and analysis of model‑written code versus human solutions.
+```
+City-of-Agents-1/
+├── src/
+│   └── city_of_agents/          # Main package
+│       ├── __init__.py
+│       ├── ast2pyg.py            # AST to PyG Data converter
+│       ├── joern.py              # Joern CPG runner
+│       ├── codeclip.py           # Code-Graph CLIP models
+│       ├── parsers/              # Code parsing utilities
+│       │   ├── __init__.py
+│       │   └── universal_parser.py
+│       ├── builders/             # City visualization builders
+│       │   ├── __init__.py
+│       │   ├── city.py           # Basic pillars visualization
+│       │   ├── city_v2.py        # Lollipop style
+│       │   ├── city_buildings.py # 3D buildings
+│       │   └── city_research.py  # Research edition with metrics
+│       ├── utils/                # Data processing utilities
+│       │   ├── __init__.py
+│       │   ├── clean_data.py
+│       │   ├── create_feature.py
+│       │   └── pyg_creator.py
+│       └── simulation/           # Simulation generators
+│           ├── __init__.py
+│           └── generate_simulation.py
+│
+├── notebooks/                    # Jupyter notebooks for experiments
+│   ├── colab_setup.ipynb        # Google Colab setup guide
+│   ├── Experiment_1.ipynb
+│   ├── Experiment_Models.ipynb
+│   ├── test.ipynb
+│   ├── demo2.ipynb
+│   └── demo6.ipynb
+│
+├── dataset/                      # Golden sample dataset
+│   └── golden sample data/
+│       ├── code/                 # Code samples by problem
+│       ├── golden_sample_code.jsonl
+│       ├── golden_sample_master.json
+│       ├── golden_sample_metadata.csv
+│       └── golden_sample_problems.csv
+│
+├── outputs/                      # Generated visualizations and data
+│   ├── city_map*.html
+│   └── simulation_data.csv
+│
+├── scripts/                      # Helper scripts
+│   └── generate_graphml.sh
+│
+├── setup.py                      # Package installation script
+├── pyproject.toml               # Modern Python packaging config
+├── requirements.txt             # Dependencies
+├── requirements-dev.txt         # Development dependencies
+└── README.md
+```
 
-### High-level summary
+## Installation Options
 
-- **Problems**: 55 matched Codeforces problems (e.g. `1381/B Unmerge`, `1778/A Flip Flop Sum`)
-- **Total samples**: 2,623 code samples
-- **Models**:
-  - `human` – accepted human submissions from Codeforces (via Kaggle)
-  - `gpt` – GPT‑4o samples (from CoDeT‑M4 on HuggingFace)
-  - `codellama` – CodeLlama‑7B samples (from CoDeT‑M4)
-  - `llama3.1` – Llama‑3.1‑8B samples (from CoDeT‑M4 / raw JSON)
-- **Languages**: `python`, `java`, `cpp`
-- **Source datasets**: `DaniilOr/CoDET-M4` (HuggingFace) + raw JSON dumps from the original authors
+### Option 1: Editable Install (Recommended for Development)
 
-The canonical machine‑readable overview of these counts and metadata is
-`dataset/golden sample data/golden_sample_master.json`.
+For development with immediate code updates:
+```bash
+pip install -e .
+```
 
-### Dataset folder layout
+For production:
+```bash
+pip install .
+```
 
-- **`dataset/golden sample data/code/`** – raw code files grouped by problem  
-  - Layout: `code/<problem_id>/<model>_<language>.<ext>`  
-  - Example: `code/1381_B/human_cpp.cpp`, `code/1381_B/gpt4o_python.py`
+With development dependencies:
+```bash
+pip install -e ".[dev]"
+```
 
-- **`dataset/golden sample data/golden_sample_code.jsonl`** – one row per code sample  
-  Key fields:
-  - `problem_id`, `contest_id`, `problem_index`, `problem_name`
-  - `model`, `language`, `code`, `cleaned_code`
-  - `code_file` (relative path under `code/`)
-  - Static features such as `feature_avgFunctionLength`, `feature_maintainabilityIndex`,
-    `loc`, `char_count`, `token_count_approx`
+## Usage Examples
 
-- **`dataset/golden sample data/golden_sample_metadata.csv`** – per‑sample CSV metadata  
-  - Problem columns: `problem_id`, `contest_id`, `difficulty_rating`, `tags`, `solved_count`
-  - Model / language columns: `model`, `model_display`, `language`, `source_type`, `hf_source`
-  - Feature columns: `feature_*`, plus `loc`, `char_count`, `token_count_approx`, `code_file`
+### 1. Generate Simulation Data
 
-- **`dataset/golden sample data/golden_sample_problems.csv`** – per‑problem summary  
-  - One row per Codeforces problem
-  - Columns include: `problem_id`, `contest_id`, `problem_index`, `problem_name`,
-    `difficulty_rating`, `tags`, `solved_count`, `codeforces_url`,
-    `total_samples`, `models`, `languages`
+```python
+from city_of_agents.simulation import generate_simulation
 
-- **`dataset/golden sample data/golden_sample_master.json`** – master summary file  
-  - Top‑level keys: `description`, `models`, `model_descriptions`, `languages`,
-    `source_dataset`, `matching_methods`, `total_problems`, `total_samples`
-  - `problems`: array of per‑problem objects with `problem_id`, `problem_name`,
-    `difficulty_rating`, `tags`, `codeforces_url`, `samples_count`,
-    `models_present`, `languages_present`
+# Generates simulation_data.csv with synthetic code metrics
+```
 
-- **Task guides** – markdown documentation about how the dataset was constructed  
-  - `guide-task-1.6-1.7-treesitter.md`  
-  - `guide-task-1.8-joern.md`  
-  - `guide-task-1.11-visualization.md`
+### 2. Build City Visualizations
 
-### Basic dataset usage examples
+```python
+from city_of_agents.builders import city
 
-- **Python: iterate over all samples**
+# Creates city_map.html with 3D visualization
+```
+
+### 3. Convert Python AST to PyG Data
+
+```python
+from city_of_agents.ast2pyg import ast_to_pyg_data
+
+code = """
+def hello_world():
+    print("Hello, world!")
+"""
+
+data = ast_to_pyg_data(code, target_label=0)
+print(f"Nodes: {data.num_nodes}, Edges: {data.edge_index.size(1)}")
+```
+
+### 4. Use Joern for CPG Generation
+
+```python
+from city_of_agents.joern import JoernRunner
+
+runner = JoernRunner(output_dir="./CPG")
+graphml_path = runner.parse_string(code_string, language="python")
+```
+
+### 5. Create PyG Dataset
+
+```python
+from city_of_agents.utils.pyg_creator import create_cpg_dataset
+
+dataset = create_cpg_dataset("./CPG", force_reload=False)
+print(f"Dataset size: {len(dataset)}")
+```
+
+## Visualization Styles
+
+The framework supports multiple visualization approaches:
+
+- `city.py`: Basic pillars
+- `city_v2.py`: Lollipop-style with floor shadows
+- `city_buildings.py`: 3D buildings
+- `city_research.py`: Research metrics edition
+
+All output interactive HTML files.
+
+## Golden Sample Dataset
+
+The `dataset/golden sample data` folder contains an evaluation dataset from Codeforces problems with multiple code-generation models.
+
+### Dataset Summary
+
+- 55 Codeforces problems
+- 2,623 total code samples
+- Multiple models: Human, GPT-4o, CodeLlama-7B, Llama-3.1-8B
+- Languages: Python, Java, C++
+- Source: `DaniilOr/CoDET-M4` (HuggingFace)
+
+### Dataset Files
+
+| File | Description |
+|------|-------------|
+| `golden_sample_code.jsonl` | Per-sample data with code and metrics |
+| `golden_sample_master.json` | Master summary with problem metadata |
+| `golden_sample_metadata.csv` | CSV format metadata |
+| `golden_sample_problems.csv` | Per-problem summary |
+| `code/` | Raw code files organized by problem |
+
+### Usage Example
 
 ```python
 import json
 from pathlib import Path
 
-root = Path("dataset") / "golden sample data"
-jsonl_path = root / "golden_sample_code.jsonl"
-
-with jsonl_path.open("r", encoding="utf-8") as f:
+jsonl_path = Path("dataset/golden sample data/golden_sample_code.jsonl")
+with jsonl_path.open("r") as f:
     for line in f:
-        row = json.loads(line)
-        # row["problem_id"], row["model"], row["language"], row["code"], ...
+        sample = json.loads(line)
+        print(f"{sample['problem_id']}: {sample['model']} ({sample['language']})")
 ```
 
-- **Python: load per‑problem summary**
+## Running Experiments
+
+### Local Environment
+
+```bash
+# 1. Generate simulation data
+python -m city_of_agents.simulation.generate_simulation
+
+# 2. Build a visualization
+python -m city_of_agents.builders.city
+
+# 3. Open the generated HTML file
+# Windows: outputs/city_map.html
+# Linux/Mac: open outputs/city_map.html
+```
+
+### Jupyter Notebooks
+
+```bash
+jupyter notebook
+```
+
+Then open any notebook in the `notebooks/` folder.
+
+### Google Colab
+
+Upload [colab_setup.ipynb](notebooks/colab_setup.ipynb) and run all cells.
+
+## Advanced Features
+
+### PyTorch Geometric Integration
+
+Convert code ASTs to PyG Data objects for GNN training:
 
 ```python
-import json
-from pathlib import Path
+from city_of_agents.ast2pyg import ast_to_pyg_data
+from torch_geometric.loader import DataLoader
 
-master = json.loads(
-    (Path("dataset") / "golden sample data" / "golden_sample_master.json")
-        .read_text(encoding="utf-8")
-)
+# Convert multiple code samples
+data_list = [ast_to_pyg_data(code, label) for code, label in zip(codes, labels)]
 
-print(master["total_problems"], master["total_samples"])
-for problem in master["problems"]:
-    print(problem["problem_id"], problem["problem_name"], problem["samples_count"])
+# Create PyG DataLoader
+loader = DataLoader(data_list, batch_size=32, shuffle=True)
 ```
+
+### Feature Encoding
+
+Encode node/edge texts using transformer models:
+
+```python
+from city_of_agents.utils.create_feature import encode_text_graph
+
+# Encode using sentence transformers
+dataset = encode_text_graph(dataset, lm_type="tiny", batch_size=32)
+```
+
+### Code CLIP Models
+
+Train contrastive models on code graphs and text:
+
+```python
+from city_of_agents.codeclip import Pretrain
+
+model = Pretrain(graph_in_dim=384, text_vocab_size=30522, embed_dim=256)
+logits_graph, logits_text = model(graph_batch, text_input)
+loss = model.loss(logits_graph, logits_text)
+```
+
+## Contributing
+
+Fork the repository, create a feature branch, and open a pull request.
+
+## License
+
+MIT License
+
+## Acknowledgments
+
+- Dataset: `DaniilOr/CoDET-M4` (HuggingFace)
+- Visualization: Plotly
+- Graph Processing: PyTorch Geometric
+- Code Analysis: Joern
 
