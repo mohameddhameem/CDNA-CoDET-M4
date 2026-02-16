@@ -1,18 +1,3 @@
-# %% [markdown]
-# # City of Agents - Google Colab Setup
-# 
-# This notebook helps you set up the **City of Agents** project in Google Colab.
-# 
-# ## Quick Start
-# 
-# Run the cells below in order to:
-# 1. Clone the GitHub repository
-# 2. Install the package and dependencies
-# 3. Verify the setup with imports
-# 4. Run example visualizations
-
-# %% [code]
-# Clone the repository (replace URL with your GitHub repo)
 import os
 
 REPO_URL = "https://github.com/mohameddhameem/City-of-Agents-1.git"
@@ -25,31 +10,22 @@ else:
     print(f"✅ Repository already exists")
 
 os.chdir(REPO_NAME)
-print(f"📂 Current: {os.getcwd()}")
+print(f"Current: {os.getcwd()}")
 
-# %% [code]
-# Install the package in editable mode
-!pip install -e . -q
-!pip install -q datasets transformers==4.47.0 ogb tqdm
+# !pip install -e . -q
+# !pip install -q datasets transformers==4.47.0 ogb tqdm
 
 print("✅ Package installed!")
 
-# %% [code]
-# Verify imports
 try:
     import city_of_agents
     from city_of_agents import ast2pyg
     from city_of_agents.utils import pyg_creator
     from city_of_agents.builders import city
-    print("✅ All imports successful!")
+    print("All imports successful!")
 except ImportError as e:
-    print(f"❌ Import error: {e}")
+    print(f"Import error: {e}")
 
-# %% [markdown]
-# ## Generate Sample Data
-
-# %% [code]
-# Generate simulation data
 import numpy as np
 import pandas as pd
 
@@ -68,11 +44,6 @@ df.to_csv("simulation_data.csv", index=False)
 print(f"✅ Generated {len(df)} data points")
 df.head()
 
-# %% [markdown]
-# ## Create Visualization
-
-# %% [code]
-# Create 3D visualization
 import plotly.graph_objects as go
 
 df = pd.read_csv("simulation_data.csv")
