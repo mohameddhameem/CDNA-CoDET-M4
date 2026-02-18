@@ -8,10 +8,14 @@ to reason about and transform software systems as a "city of agents".
 
 1. **Create and activate a virtual environment** (recommended):
    - `python -m venv .venv`
+   - macOS/Linux: `source .venv/bin/activate`
    - Windows: `.\.venv\Scripts\activate`
-2. **Install dependencies**:
-   - `pip install -r requirements.txt`
-3. **Run an example pipeline** (from the repo root):
+2. **Install base dependencies** (always):
+   - `python -m pip install --upgrade pip`
+   - `python -m pip install -r requirements.txt`
+3. **Optional: install CUDA 12.1 PyG extensions** (Linux/Windows GPU only):
+   - `python -m pip install -r requirements-cu121.txt`
+4. **Run an example pipeline** (from the repo root):
    - `python build_city.py`
    - or open one of the notebooks under `notebooks/` in Jupyter / VS Code.
 
@@ -34,7 +38,8 @@ to reason about and transform software systems as a "city of agents".
 - **`scripts/`**: helper shell scripts  
   - `scripts/generate_graphml.sh`
 
-- **`requirements.txt`**: combined dependencies for data, modeling, and graph processing
+- **`requirements.txt`**: base dependencies for data/modeling and CPU-friendly setup
+- **`requirements-cu121.txt`**: optional CUDA 12.1 + PyG extension packages
 
 ## Golden sample dataset
 
