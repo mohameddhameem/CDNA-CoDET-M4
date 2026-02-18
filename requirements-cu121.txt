@@ -1,0 +1,12 @@
+# Optional GPU extensions for Linux/Windows CUDA 12.1 environments.
+# Install after base dependencies:
+#   python -m pip install -r requirements.txt -r requirements-cu121.txt
+
+-f https://download.pytorch.org/whl/cu121
+-f https://data.pyg.org/whl/torch-2.5.1+cu121.html
+
+pyg_lib
+torch-scatter
+torch-sparse
+torch-cluster
+torch-spline-conv
