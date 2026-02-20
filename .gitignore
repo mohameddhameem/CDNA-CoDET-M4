@@ -102,5 +102,5 @@ city_map*.html
 *.bak
 *.swp
 *~
-
+*.pt
 # End of .gitignore
