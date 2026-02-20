@@ -22,7 +22,8 @@ class CPGDatasetOptimized(Dataset):
         indices: List[int],
         labels_dict: Dict[int, int],
         id_map: Dict[str, str],
-        load_mode: str = "lazy"  # 'lazy' or 'immediate'
+        load_mode: str = "lazy",
+        device: str = "cpu"
     ):
         """
         Args:
@@ -31,21 +32,20 @@ class CPGDatasetOptimized(Dataset):
             labels_dict: Dictionary mapping index to label
             id_map: Label index to name mapping
             load_mode: 'lazy' (load on demand) or 'immediate' (load all)
+            device: 'cpu' or 'cuda'
         """
         self.tensor_path = tensor_path
         self.indices = indices
         self.labels_dict = labels_dict
         self.id_map = id_map
         self.load_mode = load_mode
-        self._graphs = None  # Will be loaded on demand
+        self.device = device
+        self._graphs = None
 
     def _load_graphs(self):
         """Load graphs only once, on first access"""
         if self._graphs is None:
-            print(f"Loading graphs from {self.tensor_path}...")
-            # Use map_location='cpu' for CPU-only loading
-            self._graphs = torch.load(self.tensor_path, map_location='cpu')
-            print(f"  Graphs loaded successfully")
+            self._graphs = torch.load(self.tensor_path, map_location=self.device)
 
     @property
     def graphs(self):
@@ -85,13 +85,30 @@ class CPGDatasetOptimized(Dataset):
 class CPGDatasetManagerOptimized:
     """Optimized manager for loading only necessary data fractions"""
 
-    def __init__(self, base_path: str = r"C:\Learning\SMU\City-of-Agents-1"):
-        """Initialize the dataset manager."""
+    def __init__(self, base_path: str = r"C:\Learning\SMU\City-of-Agents-1", device: str = "auto"):
+        """Initialize the dataset manager.
+
+        Args:
+            base_path: Path to dataset root
+            device: 'auto' (auto-detect), 'cuda' (GPU), or 'cpu'
+        """
         self.base_path = Path(base_path)
         self.dataset_path = self.base_path / "dataset"
         self.processed_homo_path = self.dataset_path / "processed_homo"
         self.data_split_path = self.dataset_path / "data_split"
         self.raw_path = self.dataset_path / "cpg"
+
+        # Handle device selection
+        if device == "auto":
+            self.device = "cuda" if torch.cuda.is_available() else "cpu"
+        elif device == "cuda":
+            if not torch.cuda.is_available():
+                print("⚠ CUDA requested but not available. Using CPU.")
+                self.device = "cpu"
+            else:
+                self.device = "cuda"
+        else:
+            self.device = "cpu"
 
         self._verify_paths()
 
@@ -108,16 +125,9 @@ class CPGDatasetManagerOptimized:
         if not self.data_split_path.exists():
             raise FileNotFoundError(f"Path not found: {self.data_split_path}")
 
-        print(f"✓ Base path: {self.base_path}")
-
     def load_split_data(self, split_name: str = "2way_base_split_target") -> Dict:
-        """Load JSON split (very lightweight operation)"""
-        print("\n" + "="*70)
-        print("LOADING SPLIT DATA")
-        print("="*70)
-
+        """Load JSON split"""
         split_path = self.data_split_path / f"{split_name}.json"
-        print(f"Loading: {split_path}")
 
         with open(split_path, 'r') as f:
             self.split_data = json.load(f)
@@ -125,25 +135,14 @@ class CPGDatasetManagerOptimized:
         self.label_map = self.split_data['label_map']
         self.id_map = self.split_data['id_map']
 
-        print(f"  Label map: {self.label_map}")
-        print(f"  Train: {len(self.split_data['train_indices']):,} samples")
-        print(f"  Test: {len(self.split_data['test_indices']):,} samples")
-
         return self.split_data
 
     def load_labels_from_jsonl(self) -> Dict[int, int]:
-        """Load labels from JSONL (lightweight if we only need specific indices)"""
-        print("\n" + "="*70)
-        print("LOADING LABELS")
-        print("="*70)
-
+        """Load labels from JSONL"""
         jsonl_path = self.raw_path / "cpg_dataset_raw10.jsonl"
 
         if not jsonl_path.exists():
-            print(f"Warning: JSONL not found at {jsonl_path}")
             return {}
-
-        print(f"Loading: {jsonl_path}")
 
         self.labels = {}
         with open(jsonl_path, 'r') as f:
@@ -153,7 +152,6 @@ class CPGDatasetManagerOptimized:
                 label_idx = self.label_map.get(target, -1)
                 self.labels[idx] = label_idx
 
-        print(f"  Loaded {len(self.labels)} labels")
         return self.labels
 
     def create_subset_indices(
@@ -162,30 +160,15 @@ class CPGDatasetManagerOptimized:
         split: str = "train",
         stratified: bool = True
     ) -> List[int]:
-        """
-        Create a subset of indices from the split.
-
-        Args:
-            fraction: Fraction of data to use (0.0-1.0)
-            split: 'train', 'test', or 'all'
-            stratified: If True, maintains class balance in subset
-
-        Returns:
-            List of indices for the subset
-        """
-        print("\n" + "="*70)
-        print("CREATING SUBSET")
-        print("="*70)
-
+        """Create a subset of indices from the split"""
         if self.split_data is None:
             raise RuntimeError("Must load split data first")
 
-        # Get indices
         if split == "train":
             all_indices = self.split_data['train_indices']
         elif split == "test":
             all_indices = self.split_data['test_indices']
-        else:  # 'all'
+        else:
             all_indices = (
                 self.split_data['train_indices'] +
                 self.split_data['test_indices']
@@ -194,15 +177,10 @@ class CPGDatasetManagerOptimized:
         subset_size = max(1, int(len(all_indices) * fraction))
 
         if stratified and self.labels:
-            # Maintain class balance
             subset = self._stratified_sample(all_indices, subset_size)
         else:
-            # Random sample
             np.random.seed(42)
             subset = list(np.random.choice(all_indices, subset_size, replace=False))
-
-        print(f"  Original size: {len(all_indices):,}")
-        print(f"  Subset size: {len(subset):,} ({fraction*100:.1f}%)")
 
         return sorted(subset)
 
@@ -240,129 +218,63 @@ class CPGDatasetManagerOptimized:
         fraction: float = 0.1,
         split: str = "train"
     ) -> CPGDatasetOptimized:
-        """
-        Create a validation dataset with only a fraction of data.
-
-        Args:
-            fraction: Fraction of data (0.1 = 10%)
-            split: 'train' or 'test'
-
-        Returns:
-            CPGDatasetOptimized instance
-        """
+        """Create a validation dataset with only a fraction of data"""
         if self.split_data is None or self.labels is None:
             raise RuntimeError("Must load split data and labels first")
 
-        # Create subset indices
         subset_indices = self.create_subset_indices(
             fraction=fraction,
             split=split,
             stratified=True
         )
 
-        # Create dataset with lazy loading
         tensor_path = str(self.processed_homo_path / "processed.pt")
         dataset = CPGDatasetOptimized(
             tensor_path=tensor_path,
             indices=subset_indices,
             labels_dict=self.labels,
             id_map=self.id_map,
-            load_mode="lazy"
+            load_mode="lazy",
+            device=self.device
         )
-
-        print(f"\n✓ Validation dataset created with {len(dataset)} samples")
-        print(f"  Label distribution: {dataset.label_distribution}")
 
         return dataset
 
     def validate_structure(self) -> bool:
         """Quick validation without loading actual data"""
-        print("\n" + "="*70)
-        print("VALIDATING DATASET STRUCTURE")
-        print("="*70)
-
         checks = []
 
-        # Check tensor file exists and has valid header
         tensor_path = self.processed_homo_path / "processed.pt"
         if tensor_path.exists():
-            size_gb = tensor_path.stat().st_size / (1024**3)
-            print(f"✓ Tensor file exists: {size_gb:.2f} GB")
             checks.append(True)
         else:
-            print(f"✗ Tensor file missing: {tensor_path}")
             checks.append(False)
 
-        # Check split data validity
         if self.split_data:
-            train_size = len(self.split_data['train_indices'])
-            test_size = len(self.split_data['test_indices'])
-            total = train_size + test_size
-
-            print(f"✓ Split valid: {train_size:,} train + {test_size:,} test = {total:,} total")
             checks.append(True)
         else:
-            print(f"✗ Split data not loaded")
             checks.append(False)
 
-        # Check labels loaded
         if self.labels:
-            print(f"✓ Labels loaded: {len(self.labels)} labels")
             checks.append(True)
         else:
-            print(f"✗ Labels not loaded")
             checks.append(False)
 
-        # Check no overlap
         if self.split_data and self.labels:
             train_set = set(self.split_data['train_indices'])
             test_set = set(self.split_data['test_indices'])
             overlap = train_set & test_set
-            if not overlap:
-                print(f"✓ No train/test overlap")
-                checks.append(True)
-            else:
-                print(f"✗ Found {len(overlap)} overlapping indices")
-                checks.append(False)
+            checks.append(len(overlap) == 0)
 
-        all_valid = all(checks)
-        status = "✓ VALID" if all_valid else "✗ INVALID"
-        print(f"\n{status}")
-
-        return all_valid
+        return all(checks)
 
     def load_and_validate(self, fraction: float = 0.05) -> Tuple[CPGDatasetOptimized, Dict]:
-        """
-        Complete pipeline: load, validate, and create validation dataset.
-
-        Args:
-            fraction: Fraction of data for validation (e.g., 0.05 = 5%)
-
-        Returns:
-            Tuple of (validation_dataset, metadata)
-        """
-        print("\n" + "█"*70)
-        print("█ OPTIMIZED DATASET LOADING PIPELINE")
-        print("█"*70)
-
-        # Check memory before
-        mem_before = self.get_memory_info()
-        print(f"\nMemory before loading: {mem_before['rss_mb']:.0f} MB available")
-
-        # Load metadata (lightweight)
+        """Complete pipeline: load, validate, and create validation dataset"""
         self.load_split_data()
         self.load_labels_from_jsonl()
-
-        # Validate structure
         self.validate_structure()
 
-        # Create small validation dataset
         val_dataset = self.create_validation_dataset(fraction=fraction, split="train")
-
-        # Check memory after
-        mem_after = self.get_memory_info()
-        print(f"\nMemory after loading: {mem_after['rss_mb']:.0f} MB used")
-        print(f"Memory increase: {(mem_before['rss_mb'] - mem_after['rss_mb']):.0f} MB")
 
         metadata = {
             'total_train': len(self.split_data['train_indices']),
@@ -372,54 +284,24 @@ class CPGDatasetManagerOptimized:
             'label_distribution': val_dataset.label_distribution
         }
 
-        print("\n" + "="*70)
-        print("METADATA")
-        print("="*70)
-        for key, val in metadata.items():
-            print(f"  {key}: {val}")
-
         return val_dataset, metadata
 
 
 def quick_validation():
     """Quick validation without loading heavy data"""
     manager = CPGDatasetManagerOptimized()
-
-    # Load only metadata
     manager.load_split_data()
     manager.load_labels_from_jsonl()
-
-    # Validate
     manager.validate_structure()
-
-    print("\n✓ Dataset is ready for use!")
     return manager
 
 
 def main():
     """Example: Load only 5% of data for validation"""
-    manager = CPGDatasetManagerOptimized()
-
-    # Load and validate (only loads 5% of data)
+    manager = CPGDatasetManagerOptimized(device="auto")
     val_dataset, metadata = manager.load_and_validate(fraction=0.05)
-
-    print("\n" + "="*70)
-    print("CREATING VALIDATION DATALOADER")
-    print("="*70)
-
-    # Create dataloader
     val_loader = DataLoader(val_dataset, batch_size=16, shuffle=False, num_workers=0)
-
-    print(f"Batches: {len(val_loader)}")
-
-    # Sample one batch (this is when actual graph data is loaded)
-    print("\nLoading first batch...")
-    batch = next(iter(val_loader))
-    print(f"  Batch size: {len(batch)} items per batch")
-
-    # Cleanup
-    gc.collect()
-    print("\n✓ Done! Memory cleaned up.")
+    print(f"✓ Loaded {metadata['validation_size']:,} samples on {manager.device.upper()}")
 
 
 if __name__ == "__main__":
