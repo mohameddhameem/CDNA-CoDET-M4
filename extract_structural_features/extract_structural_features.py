@@ -22,16 +22,20 @@ from __future__ import annotations
 
 import argparse
 import ast
-import hashlib
 import io
 import json
 import math
 import tokenize
 import warnings
 from pathlib import Path
-from typing import Dict, Iterable, List, Optional
+from typing import Dict, List, Optional
 
 from datasets import Dataset, DatasetDict, load_dataset
+
+try:
+    from .code_hash import choose_code_column, compute_code_sha1
+except ImportError:
+    from code_hash import choose_code_column, compute_code_sha1
 
 
 METADATA_COLUMNS = [
@@ -43,8 +47,6 @@ METADATA_COLUMNS = [
     "source_type",
     "model_display",
 ]
-
-CODE_COLUMN_CANDIDATES = ["cleaned_code", "code"]
 
 AST_NODE_TYPES = {
     "FunctionDef": ast.FunctionDef,
@@ -96,14 +98,6 @@ def parse_args() -> argparse.Namespace:
         help="Do not include existing nested CoDET-M4 'features' values",
     )
     return parser.parse_args()
-
-
-def choose_code_column(columns: Iterable[str]) -> str:
-    col_set = set(columns)
-    for candidate in CODE_COLUMN_CANDIDATES:
-        if candidate in col_set:
-            return candidate
-    raise ValueError(f"None of {CODE_COLUMN_CANDIDATES} found in dataset columns: {sorted(col_set)}")
 
 
 def safe_float(value: object) -> Optional[float]:
@@ -295,7 +289,7 @@ def extract_row_features(
     code_obj = example.get(code_col)
     code = code_obj if isinstance(code_obj, str) else ""
 
-    code_hash = hashlib.sha1(code.encode("utf-8")).hexdigest() if code else ""
+    code_hash = compute_code_sha1(code_obj)
     result: Dict[str, object] = {
         "dataset_split": split_name,
         "split_index": int(idx),
