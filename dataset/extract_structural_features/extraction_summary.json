@@ -1,0 +1,17 @@
+[
+  {
+    "split": "train",
+    "rows": 177279,
+    "ast_parse_success_rows": 165728,
+    "ast_parse_success_rate": 0.9348428183823239,
+    "models": [
+      "codellama",
+      "gpt",
+      "human",
+      "llama3.1",
+      "nxcode",
+      "qwen1.5"
+    ],
+    "output": "/Users/kimsia/Projects/smu-mitb-2024-2027/smu-mitb-cs706-software-mining/project/avi-idea/data/processed_homo/python_agg/train.parquet"
+  }
+]
