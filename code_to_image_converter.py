@@ -6,6 +6,18 @@ from tqdm import tqdm
 
 
 def code_to_image(code: str, image_size: int = 32) -> np.ndarray:
+    """
+    Below is a common mapping we have used for converting code characters to pixel values in the resulting image. This mapping is based on ASCII values and common code formatting:
+        Pixel Value | What It Represents
+        ─────────────────────────────────
+        0       | Padding (unused, short code)
+        10       | Newline character (\n)
+        32       | Space character
+        40-57    | Parentheses, numbers, punctuation
+        65-90    | Uppercase letters (A-Z)
+        97-122   | Lowercase letters (a-z)
+        255      | High Unicode characters (rare in ASCII code)
+    """
     code_bytes = code.encode('utf-8', errors='ignore')
     total_pixels = image_size * image_size
     if len(code_bytes) >= total_pixels:
