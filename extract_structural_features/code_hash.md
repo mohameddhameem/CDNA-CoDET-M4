@@ -11,7 +11,7 @@ Provide one shared, extractor-compatible way to generate code hashes.
 
 This matches the behavior used in feature extraction:
 
-- Prefer `code`, then fallback to `cleaned_code`
+- Prefer `code`, then fall back to `cleaned_code`
 - Hash algorithm: SHA1
 - Encoding: UTF-8
 - Empty/missing/non-string code -> empty hash (`""`)
@@ -25,13 +25,13 @@ This matches the behavior used in feature extraction:
   - SHA1 hex digest if input is a non-empty string
   - `""` otherwise
 
-### `choose_code_column(columns: Iterable[str], candidates: Sequence[str] = ["cleaned_code", "code"]) -> str`
+### `choose_code_column(columns: Iterable[str], candidates: Sequence[str] = ["code", "cleaned_code"]) -> str`
 
 - Selects the first available column from candidates.
-- Default priority: `cleaned_code` then `code`.
+- Default priority: `code` then `cleaned_code`
 - Raises `ValueError` if neither exists.
 
-### `compute_code_sha1_from_row(row: Mapping[str, object], candidates: Sequence[str] = ["cleaned_code", "code"]) -> tuple[str, str]`
+### `compute_code_sha1_from_row(row: Mapping[str, object], candidates: Sequence[str] = ["code", "cleaned_code"]) -> tuple[str, str]`
 
 - Picks column using `choose_code_column`.
 - Returns:

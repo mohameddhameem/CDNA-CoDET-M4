@@ -9,6 +9,8 @@ matplotlib
 seaborn
 ipykernel
 pyarrow
+fsspec>=2024.1
+huggingface_hub>=1.0
 
 networkx
 ogb>=1.3.6
