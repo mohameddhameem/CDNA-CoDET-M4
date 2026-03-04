@@ -19,12 +19,121 @@ to reason about and transform software systems as a "city of agents".
    - `python build_city.py`
    - or open one of the notebooks under `notebooks/` in Jupyter / VS Code.
 
+## CodeCLIP Experiment Workflow
+
+Complete end-to-end workflow for running CodeCLIP pretraining and downstream tasks locally.
+
+### Step 1: Environment Setup
+```bash
+# Create virtual environment
+python -m venv .venv
+
+# Activate it
+# macOS/Linux:
+source .venv/bin/activate
+# Windows:
+.\.venv\Scripts\activate
+
+# Install dependencies
+python -m pip install --upgrade pip
+python -m pip install -r requirements.txt
+
+# (Optional) For GPU with CUDA 12.1
+python -m pip install -r requirements-cu121.txt
+```
+
+### Step 2: Prepare Data
+
+Organize your source code files and generate Code Property Graphs (CPGs):
+
+```bash
+# Your raw code should be organized in a directory, e.g., ./raw_code
+# Then generate CPGs using Joern:
+./scripts/generate_cpgs.sh
+
+# This creates CPG GraphML files in ./CPG directory
+```
+
+### Step 3: Convert CPGs to Graph Format
+
+Convert CPGs to heterogeneous or homogeneous heterogeneous graph representations:
+
+```bash
+# For heterogeneous graphs (node + edge types)
+./scripts/generate_hetero.sh
+
+# Or for homogeneous graphs (single node/edge type)
+./scripts/generate_homo.sh
+
+# Generated datasets are saved in ./CPG directory
+```
+
+### Step 4: Pretraining
+
+Train the CodeCLIP model with contrastive learning on graph-code pairs:
+
+```bash
+# Basic pretraining (Python)
+python run_experiments.py \
+  --task_name pretrain \
+  --language python \
+  --epochs 100 \
+  --batch_size 1024 \
+  --use_gpu False
+
+# With GPU
+python run_experiments.py \
+  --task_name pretrain \
+  --language python \
+  --epochs 100 \
+  --use_gpu True \
+  --gpu 0
+
+# Or use shell script
+./scripts/pretrain.sh
+```
+
+**Outputs**: Checkpoints saved to `./checkpoints/pretrain_*`
+
+### Step 5: Downstream Task (Classification/Fine-tuning)
+
+Fine-tune the pretrained model on downstream classification tasks:
+
+```bash
+# Run downstream task
+python run_experiments.py \
+  --task_name downstream \
+  --language python \
+  --use_gpu False
+
+# Or use shell script
+./scripts/downstream.sh
+```
+
+**Outputs**: Model predictions and metrics to `./results/`
+
+### Step 6: Evaluation
+
+Results are automatically computed during training:
+
+```bash
+# Check results
+ls ./results/
+cat ./results/downstream_*.log
+
+# View metrics (precision, recall, F1, accuracy)
+# Open notebooks for detailed analysis
+jupyter notebook notebooks/exp_test.ipynb
+```
+
+---
+
 ## Running CodeCLIP Experiments
 
-### Setup
-Prepare your CPG (Code Property Graph) data in `./CPG` folder, then:
+### Quick reference
 
-### Quick run
+For quick testing without shell scripts:
+
 ```bash
 # Pretraining on Python code
 python run_experiments.py --task_name pretrain --language python --epochs 100
@@ -45,7 +154,7 @@ python run_experiments.py --task_name downstream --language python
 ./scripts/downstream.sh
 ```
 
-### Key arguments
+### All available arguments
 ```bash
 python run_experiments.py \
   --task_name pretrain          # pretrain or downstream
@@ -59,7 +168,8 @@ python run_experiments.py \
   --checkpoints ./checkpoints   # checkpoint directory
 ```
 
-See `run_experiments.py` for all available arguments.
+See `run_experiments.py` for complete list of arguments.
+
 
 
 ## Project structure
