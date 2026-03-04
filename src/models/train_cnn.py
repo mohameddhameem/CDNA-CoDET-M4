@@ -1,3 +1,15 @@
+"""
+CNN Image Classifier for Code Models
+
+Trains a ConvNeXt-based model to classify code images by model type.
+Supports checkpoint saving/loading for resumable training.
+
+Usage:
+    python src/models/train_cnn.py
+
+    Or with custom config:
+    CONFIG = {'epochs': 50, 'batch_size': 64, ...}
+"""
 import pandas as pd
 import numpy as np
 import pickle
@@ -23,15 +35,17 @@ CONFIG = {
     'device': 'cuda' if torch.cuda.is_available() else 'cpu',
     'seed': 42,
     'checkpoint_dir': 'checkpoints',
-    'resume_training': True,
+    'resume_training': True,  # Resume from checkpoint if it exists
 }
 
 torch.manual_seed(CONFIG['seed'])
 np.random.seed(CONFIG['seed'])
 
+
 def load_dataset():
+    """Load and preprocess code image dataset."""
     print("Loading dataset...")
-    df = pd.read_parquet('dataset/code_images.parquet')
+    df = pd.read_parquet('data/processed/code_images.parquet')
     print(f"Loaded {len(df)} samples")
 
     images = []
@@ -48,13 +62,17 @@ def load_dataset():
 
     return X, y, le, df
 
+
 def create_model(num_classes):
+    """Create ConvNeXt-based classifier."""
     weights = ConvNeXt_Base_Weights.IMAGENET1K_V1
     model = convnext_base(weights=weights)
     model.classifier[2] = nn.Linear(model.classifier[2].in_features, num_classes)
     return model
 
+
 def save_checkpoint(model, optimizer, epoch, checkpoint_path):
+    """Save model and optimizer state."""
     os.makedirs(os.path.dirname(checkpoint_path), exist_ok=True)
     torch.save({
         'epoch': epoch,
@@ -63,7 +81,9 @@ def save_checkpoint(model, optimizer, epoch, checkpoint_path):
     }, checkpoint_path)
     print(f"Checkpoint saved at epoch {epoch}: {checkpoint_path}")
 
+
 def load_checkpoint(model, optimizer, checkpoint_path, device):
+    """Load model and optimizer state from checkpoint."""
     if not os.path.exists(checkpoint_path):
         print(f"No checkpoint found at {checkpoint_path}")
         return model, optimizer, 0
@@ -75,7 +95,9 @@ def load_checkpoint(model, optimizer, checkpoint_path, device):
     print(f"Checkpoint loaded: resuming from epoch {start_epoch}")
     return model, optimizer, start_epoch
 
+
 def train_epoch(model, loader, optimizer, criterion, device):
+    """Train for one epoch."""
     model.train()
     total_loss = 0
     for images, labels in tqdm(loader, desc="Training", leave=False):
@@ -91,7 +113,9 @@ def train_epoch(model, loader, optimizer, criterion, device):
 
     return total_loss / len(loader)
 
+
 def evaluate(model, loader, device):
+    """Evaluate model on test set."""
     model.eval()
     all_preds = []
     all_labels = []
@@ -110,13 +134,15 @@ def evaluate(model, loader, device):
 
     return np.array(all_preds), np.array(all_labels), np.array(all_probs)
 
+
 def main():
+    """Main training and evaluation pipeline."""
     X, y, le, df = load_dataset()
 
     num_classes = len(np.unique(y))
-    print(f"Number of classes: {num_classes}")
+    print(f"\nNumber of classes: {num_classes}")
     print(f"Target column: {CONFIG['target_column']}")
-    print(f"Classes: {le.classes_}")
+    print(f"Classes: {le.classes_}\n")
 
     X_train, X_test, y_train, y_test = train_test_split(
         X, y, test_size=CONFIG['test_size'], random_state=CONFIG['seed'], stratify=y
@@ -139,13 +165,14 @@ def main():
     if CONFIG['resume_training'] and os.path.exists(checkpoint_path):
         model, optimizer, start_epoch = load_checkpoint(model, optimizer, checkpoint_path, CONFIG['device'])
 
-    print(f"\nTraining on {CONFIG['device']}...")
-    print(f"Training from epoch {start_epoch + 1} to {start_epoch + CONFIG['epochs']}")
+    print(f"Training on {CONFIG['device']}...")
+    print(f"Training from epoch {start_epoch + 1} to {start_epoch + CONFIG['epochs']}\n")
 
     for epoch in range(start_epoch, start_epoch + CONFIG['epochs']):
         loss = train_epoch(model, train_loader, optimizer, criterion, CONFIG['device'])
         print(f"Epoch {epoch + 1}/{start_epoch + CONFIG['epochs']}, Loss: {loss:.4f}")
 
+        # Save checkpoint every 5 epochs
         if (epoch + 1) % 5 == 0 or epoch == start_epoch:
             save_checkpoint(model, optimizer, epoch + 1, checkpoint_path)
 
@@ -178,13 +205,17 @@ def main():
     plt.tight_layout()
     plt.savefig('results/confusion_matrix.png', dpi=150)
 
-    print(f"\nResults:")
+    print(f"\n{'='*50}")
+    print(f"Results:")
     print(f"  Accuracy: {accuracy:.4f}")
     print(f"  F1 Score: {f1:.4f}")
     print(f"  AUC: {auc:.4f}")
     print(f"\nConfusion Matrix:\n{cm}")
-    print(f"\nModel saved to: {checkpoint_path}")
-    print(f"Results saved to: results/")
+    print(f"\nModel checkpoint: {checkpoint_path}")
+    print(f"Metrics saved to: results/metrics.csv")
+    print(f"Confusion matrix saved to: results/confusion_matrix.png")
+    print(f"{'='*50}")
+
 
 if __name__ == "__main__":
     main()

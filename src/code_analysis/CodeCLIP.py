@@ -1,3 +1,14 @@
+"""
+DEPRECATED: This is an older prototype implementation using homogeneous graphs.
+
+Please use src/models/codeclip/CodeCLIP.py instead, which provides:
+- Advanced heterogeneous graph encoding (HeteroGraphEncoder)
+- Better text encoding with multiple pooling strategies
+- Mixture of Experts (MoE) fusion for downstream tasks
+- Spectral loss regularization
+
+This module is kept for reference only and should not be used in new code.
+"""
 import torch
 import torch.nn as nn
 from torch_geometric.nn import GINEConv, global_mean_pool

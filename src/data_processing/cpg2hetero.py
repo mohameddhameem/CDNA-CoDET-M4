@@ -2,91 +2,11 @@ import json
 import torch
 import os
 import shutil
-import xml.etree.ElementTree as ET
 from torch_geometric.data import HeteroData, InMemoryDataset
 from tqdm import tqdm
 from multiprocessing import Pool
-from utils.tokenizer import encode_texts, load_codebert
-
-# ==========================================
-# 1. Parser: XML -> Python Dict (No Tensors)
-# ==========================================
-def parse_graphml_to_dict(graphml_content):
-    """
-    Parses GraphML XML string into a standard Python Dictionary.
-    Workers return pure Python lists/dicts to avoid mmap errors.
-    """
-    if not graphml_content:
-        return None
-
-    try:
-        root = ET.fromstring(graphml_content)
-    except ET.ParseError:
-        return None
-
-    ns = {'g': 'http://graphml.graphdrawing.org/xmlns'}
-    graph = root.find('g:graph', ns)
-    if graph is None:
-        return None
-
-    # --- A. Parse Nodes ---
-    node_storage = {} 
-    id_map = {} 
-
-    def _clean_val(val):
-        if val is None: return ""
-        return str(val).replace('\n', '\\n').replace("'", "\\'")
-
-    for node in graph.findall('g:node', ns):
-        node_id = node.get('id')
-        label_elem = node.find("g:data[@key='labelV']", ns)
-        node_type = label_elem.text if label_elem is not None else "UNKNOWN"
-        
-        if node_type not in node_storage:
-            node_storage[node_type] = []
-
-        attrs = []
-        for data in node.findall('g:data', ns):
-            key = data.get('key')
-            val = data.text or ""
-            if key == 'labelV' or not val: continue
-            attrs.append((key, _clean_val(val)))
-        
-        attrs.sort(key=lambda x: x[0])
-        attr_str = ", ".join([f"{k}='{v}'" for k, v in attrs])
-        
-        current_idx = len(node_storage[node_type])
-        node_storage[node_type].append(attr_str)
-        id_map[node_id] = (node_type, current_idx)
-
-    if not node_storage:
-        return None
-
-    # --- B. Parse Edges ---
-    edge_storage = {}
-
-    for edge in graph.findall('g:edge', ns):
-        s_xml, t_xml = edge.get('source'), edge.get('target')
-        if s_xml not in id_map or t_xml not in id_map:
-            continue
-            
-        src_type, src_idx = id_map[s_xml]
-        dst_type, dst_idx = id_map[t_xml]
-        
-        label_elem = edge.find("g:data[@key='labelE']", ns)
-        edge_label = label_elem.text if label_elem is not None else "edge"
-        
-        edge_key = (src_type, edge_label, dst_type)
-        if edge_key not in edge_storage:
-            edge_storage[edge_key] = {"src": [], "dst": []}
-            
-        edge_storage[edge_key]["src"].append(src_idx)
-        edge_storage[edge_key]["dst"].append(dst_idx)
-
-    return {
-        "nodes": node_storage,
-        "edges": edge_storage
-    }
+from src.data_processing.graphml_parser import parse_graphml_to_dict
+from src.data_processing.tokenizer import encode_texts, load_codebert
 
 # ==========================================
 # 2. Converter: Dict -> HeteroData (Main Process)
