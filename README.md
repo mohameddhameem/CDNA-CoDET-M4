@@ -19,27 +19,85 @@ to reason about and transform software systems as a "city of agents".
    - `python build_city.py`
    - or open one of the notebooks under `notebooks/` in Jupyter / VS Code.
 
+## Running CodeCLIP Experiments
+
+### Setup
+Prepare your CPG (Code Property Graph) data in `./CPG` folder, then:
+
+### Quick run
+```bash
+# Pretraining on Python code
+python run_experiments.py --task_name pretrain --language python --epochs 100
+
+# Downstream classification task
+python run_experiments.py --task_name downstream --language python
+```
+
+### Using shell scripts
+```bash
+# Generate heterogeneous graphs from CPGs
+./scripts/generate_hetero.sh
+
+# Run pretraining
+./scripts/pretrain.sh
+
+# Run downstream task
+./scripts/downstream.sh
+```
+
+### Key arguments
+```bash
+python run_experiments.py \
+  --task_name pretrain          # pretrain or downstream
+  --language python             # python, java, or cpp
+  --model samgpt                # model name
+  --batch_size 1024             # batch size
+  --learning_rate 0.001         # learning rate
+  --epochs 100                  # number of epochs
+  --hidden_dim 256              # hidden dimension
+  --use_gpu False               # set True for GPU
+  --checkpoints ./checkpoints   # checkpoint directory
+```
+
+See `run_experiments.py` for all available arguments.
+
+
 ## Project structure
 
-- **Root Python scripts**: core utilities and pipelines for the project  
-  - `build_city.py`, `build_city_buildings.py`, `build_city_research.py`, `build_city_v2.py`  
-  - `clean_data.py`, `generate_simluation.py`, `universal_parser.py`  
-  - Graph/feature utilities: `ast2pyg.py`, `pyg_creator.py`, `create_feature.py`, `CodeCLIP.py`, `Joern.py`
+### Source code (`src/`)
+- **`models/codeclip/`** – CodeCLIP experiment models
+  - `CodeCLIP.py`, `CodeBert.py`, `Unixcoder.py` (model architectures)
+  - `GraphEncoder.py`, `TextEncoder.py` (core layers)
+  - Ablation variants for research
+- **`experiments/`** – Experiment orchestration
+  - `exp_pretrain.py`, `exp_downstream.py` (training pipelines)
+  - `exp_basic.py` (base class)
+- **`data_processing/`** – Data utilities
+  - `cpg2hetero.py`, `cpg2homo.py` (CPG conversions)
+  - `tokenizer.py`, `datasplit.py`, `tools.py`
+  - Legacy converters: `code_to_image_converter.py`, `clean_data.py`
+- **`feature_extraction/`** – Feature extraction tools
+- **`code_analysis/`** – Code analysis utilities (AST, graphs)
+- **`city_building/`** – Visualization and simulation
 
-- **`notebooks/`**: interactive experimentation and demos  
-  - `Experiment_1.ipynb`  
-  - `demo2.ipynb`  
-  - `demo6.ipynb`
+### Experiment files (root level)
+- **`run_experiments.py`** – main entry point for pretraining/downstream tasks
+- **`scripts/`** – shell scripts for CPG generation and experiment execution
+  - `pretrain.sh`, `downstream.sh`, `generate_hetero.sh`, `generate_homo.sh`, etc.
 
-- **`outputs/`**: generated artifacts and data dumps  
-  - City visualizations: `city_map*.html`  
-  - Simulation data: `simulation_data.csv`
+### Data
+- **`data/raw/`** – original datasets (golden sample data)
+- **`data/processed/`** – processed datasets and outputs
 
-- **`scripts/`**: helper shell scripts  
-  - `scripts/generate_graphml.sh`
+### Notebooks
+- **`notebooks/`** – Jupyter notebooks for experimentation
+  - `exp_test.ipynb` – CodeCLIP experiment testing
+  - `Experiment_*.ipynb`, `demo*.ipynb` – other analysis notebooks
 
-- **`requirements.txt`**: base dependencies for data/modeling and CPU-friendly setup
-- **`requirements-cu121.txt`**: optional CUDA 12.1 + PyG extension packages
+### Other
+- **`requirements.txt`** – base dependencies (always install)
+- **`requirements-cu121.txt`** – optional CUDA 12.1 extensions
+- **`tests/`** – test and verification scripts
 
 ## Golden sample dataset
 
