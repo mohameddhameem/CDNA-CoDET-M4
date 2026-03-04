@@ -4,26 +4,17 @@ LLM for Software Engineering
 This repository contains experiments and utilities for using large language models
 to reason about and transform software systems as a "city of agents".
 
-## Quick start
-
-1. **Create and activate a virtual environment** (recommended):
-   - `python -m venv .venv`
-   - macOS/Linux: `source .venv/bin/activate`
-   - Windows: `.\.venv\Scripts\activate`
-2. **Install base dependencies** (always):
-   - `python -m pip install --upgrade pip`
-   - `python -m pip install -r requirements.txt`
-3. **Optional: install CUDA 12.1 PyG extensions** (Linux/Windows GPU only):
-   - `python -m pip install -r requirements-cu121.txt`
-4. **Run an example pipeline** (from the repo root):
-   - `python build_city.py`
-   - or open one of the notebooks under `notebooks/` in Jupyter / VS Code.
+## Table of Contents
+- [CodeCLIP Experiment Workflow](#codeclip-experiment-workflow) – End-to-end pretraining and evaluation
+- [Project Structure](#project-structure) – Repository organization
+- [Golden Sample Dataset](#golden-sample-dataset) – Dataset overview and usage
 
 ## CodeCLIP Experiment Workflow
 
 Complete end-to-end workflow for running CodeCLIP pretraining and downstream tasks locally.
 
 ### Step 1: Environment Setup
+
 ```bash
 # Create virtual environment
 python -m venv .venv
@@ -56,7 +47,7 @@ Organize your source code files and generate Code Property Graphs (CPGs):
 
 ### Step 3: Convert CPGs to Graph Format
 
-Convert CPGs to heterogeneous or homogeneous heterogeneous graph representations:
+Convert CPGs to heterogeneous or homogeneous graph representations:
 
 ```bash
 # For heterogeneous graphs (node + edge types)
@@ -126,49 +117,23 @@ cat ./results/downstream_*.log
 jupyter notebook notebooks/exp_test.ipynb
 ```
 
----
+### Available Command-Line Arguments
 
-## Running CodeCLIP Experiments
-
-### Quick reference
-
-For quick testing without shell scripts:
-
-```bash
-# Pretraining on Python code
-python run_experiments.py --task_name pretrain --language python --epochs 100
-
-# Downstream classification task
-python run_experiments.py --task_name downstream --language python
-```
-
-### Using shell scripts
-```bash
-# Generate heterogeneous graphs from CPGs
-./scripts/generate_hetero.sh
-
-# Run pretraining
-./scripts/pretrain.sh
-
-# Run downstream task
-./scripts/downstream.sh
-```
-
-### All available arguments
 ```bash
 python run_experiments.py \
-  --task_name pretrain          # pretrain or downstream
-  --language python             # python, java, or cpp
-  --model samgpt                # model name
-  --batch_size 1024             # batch size
-  --learning_rate 0.001         # learning rate
-  --epochs 100                  # number of epochs
-  --hidden_dim 256              # hidden dimension
-  --use_gpu False               # set True for GPU
-  --checkpoints ./checkpoints   # checkpoint directory
+  --task_name pretrain              # pretrain or downstream
+  --language python                 # python, java, or cpp
+  --model samgpt                    # model name
+  --batch_size 1024                 # batch size
+  --learning_rate 0.001             # learning rate
+  --epochs 100                      # number of epochs
+  --hidden_dim 256                  # hidden dimension
+  --use_gpu False                   # set True for GPU
+  --checkpoints ./checkpoints       # checkpoint directory
 ```
 
 See `run_experiments.py` for complete list of arguments.
+
 
 
 
