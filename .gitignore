@@ -77,6 +77,12 @@ target/
 # Notebook / model checkpoints (large binaries)
 notebooks/checkpoints/
 
+# Large processed datasets
+data/processed/processed_homo/
+*.pt
+*.pth
+*.pkl
+
 # IPython
 profile_default/
 ipython_config.py
