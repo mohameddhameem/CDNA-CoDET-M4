@@ -22,7 +22,7 @@ echo "=== ${TASK_NAME} Generation Started ===" > $LOGFILE
 echo "Workers: ${WORKERS}" >> $LOGFILE
 : > $PID_FILE
 
-nohup python utils/cpg2homo.py ${COMMON_ARGS} \
+nohup python src/data_processing/cpg2homo.py ${COMMON_ARGS} \
     >> $LOGFILE 2>&1 &
 
 echo $! >> $PID_FILE

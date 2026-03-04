@@ -23,7 +23,7 @@ echo "=== ${TASK_NAME} Generation Started ===" > $LOGFILE
 echo "Workers: ${WORKERS}" >> $LOGFILE
 : > $PID_FILE
 
-nohup python utils/Joern.py ${COMMON_ARGS} \
+nohup python src/code_analysis/Joern.py ${COMMON_ARGS} \
     >> $LOGFILE 2>&1 &
 
 echo $! >> $PID_FILE
