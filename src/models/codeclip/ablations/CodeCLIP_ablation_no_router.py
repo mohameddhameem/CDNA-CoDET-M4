@@ -1,6 +1,6 @@
 import torch
 import torch.nn as nn
-from models.CodeCLIP import Pretrain
+from ..CodeCLIP import Pretrain
 
 
 class Downstream(nn.Module):

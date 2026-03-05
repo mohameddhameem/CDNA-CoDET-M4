@@ -1,6 +1,6 @@
 import torch
 import torch.nn as nn
-from .GraphEncoder import HeteroGraphEncoder
+from ..GraphEncoder import HeteroGraphEncoder
 
 
 class Pretrain(nn.Module):

@@ -66,31 +66,31 @@ def main():
         root=f'./{args.path}',
         force_reload=False)
 
-    if args.task_name == 'pretrain':
-        exp = ExpPretrain(args, dataset=dataset)
+    # if args.task_name == 'pretrain':
+    #     exp = ExpPretrain(args, dataset=dataset)
         
-        # Train model
-        if not args.use_multi_gpu or (dist.is_initialized() and dist.get_rank() == 0):
-            print('Start training...')
-        exp.train()
+    #     # Train model
+    #     if not args.use_multi_gpu or (dist.is_initialized() and dist.get_rank() == 0):
+    #         print('Start training...')
+    #     exp.train()
         
 
-    if args.task_name == 'downstream':
-        if not args.use_multi_gpu or (dist.is_initialized() and dist.get_rank() == 0):
-            print(f'Starting {args.task_name.capitalize()} Classification Task...')
-        exp = ExpDownstream(args, dataset=dataset)
-        exp.train()
+    # if args.task_name == 'downstream':
+    #     if not args.use_multi_gpu or (dist.is_initialized() and dist.get_rank() == 0):
+    #         print(f'Starting {args.task_name.capitalize()} Classification Task...')
+    #     exp = ExpDownstream(args, dataset=dataset)
+    #     exp.train()
         
-        del exp
-        torch.cuda.empty_cache()
-        gc.collect()
+    #     del exp
+    #     torch.cuda.empty_cache()
+    #     gc.collect()
 
-        if not args.use_multi_gpu or (dist.is_initialized() and dist.get_rank() == 0):
-            print(f'All Tasks Completed.')
+    #     if not args.use_multi_gpu or (dist.is_initialized() and dist.get_rank() == 0):
+    #         print(f'All Tasks Completed.')
 
-    if args.use_multi_gpu and dist.is_initialized():
-        dist.destroy_process_group()
-        print("Distributed process group destroyed")
+    # if args.use_multi_gpu and dist.is_initialized():
+    #     dist.destroy_process_group()
+    #     print("Distributed process group destroyed")
 
 
 if __name__ == '__main__':

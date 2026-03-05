@@ -15,6 +15,10 @@ Complete end-to-end workflow for running CodeCLIP pretraining and downstream tas
 
 ### Step 1: Environment Setup
 
+module avail
+module load python/3.11.4
+
+
 ```bash
 # Create virtual environment
 python -m venv .venv
@@ -22,6 +26,9 @@ python -m venv .venv
 # Activate it
 # macOS/Linux:
 source .venv/bin/activate
+
+source myenv311/bin/activate
+
 # Windows:
 .\.venv\Scripts\activate
 

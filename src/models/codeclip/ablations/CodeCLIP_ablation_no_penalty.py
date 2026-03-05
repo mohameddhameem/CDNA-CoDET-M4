@@ -1,9 +1,9 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from .GraphEncoder import HeteroGraphEncoder
-from .TextEncoder import TextEncoder
-from models.CodeCLIP_ablation_no_router import Downstream
+from ..GraphEncoder import HeteroGraphEncoder
+from ..TextEncoder import TextEncoder
+from .CodeCLIP_ablation_no_router import Downstream
 
 # Pretraining: contrastive + covariance decorrelation
 class Pretrain(nn.Module):
