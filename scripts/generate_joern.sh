@@ -1,39 +1,90 @@
 #!/bin/bash
+
+# ============================================================
+# HPC-Friendly CPG Generation Script
+# ============================================================
+# This script generates CPG dataset with GraphML via Joern
+#
+# Usage:
+#   JOERN_PATH=/path/to/joern-cli bash scripts/generate_joern.sh
+#   JOERN_PATH=/path/to/joern-cli WORKERS=32 LIMIT=100 bash scripts/generate_joern.sh
+#
+# Required environment variables:
+#   JOERN_PATH   - Path to joern-cli directory (absolute path)
+#
+# Optional environment variables:
+#   WORKERS      - Number of parallel workers (default: 15)
+#   LIMIT        - Limit number of samples for testing (default: none)
+#   SAVE         - Output directory (default: CPG)
+# ============================================================
+
+# Set defaults
+WORKERS=${WORKERS:-15}
+LIMIT=${LIMIT:-}
+SAVE=${SAVE:-CPG}
+
+# Check JOERN_PATH is set
+if [ -z "$JOERN_PATH" ]; then
+    echo "ERROR: JOERN_PATH environment variable not set"
+    echo "Usage: JOERN_PATH=/path/to/joern-cli bash $0"
+    exit 1
+fi
+
+# Check JOERN_PATH exists
+if [ ! -d "$JOERN_PATH" ]; then
+    echo "ERROR: JOERN_PATH does not exist: $JOERN_PATH"
+    exit 1
+fi
+
+# Verify joern lib directory exists
+if [ ! -d "$JOERN_PATH/lib" ]; then
+    echo "ERROR: Joern lib directory not found at: $JOERN_PATH/lib"
+    exit 1
+fi
+
+# Setup Python environment
 export PYTHONIOENCODING=utf-8
 export PYTHONUTF8=1
 export PYTHONPATH="$PWD:$PYTHONPATH"
 export PYTHONUNBUFFERED=1
 
 TASK_NAME="Joern"
-WORKERS=${WORKERS:-15}
-LIMIT=${LIMIT:-}  # Optional limit for testing
-SAVE="CPG"
 
-COMMON_ARGS="--workers ${WORKERS} --path ${SAVE}"
-
-if [ -n "$LIMIT" ]; then
-    COMMON_ARGS="$COMMON_ARGS --limit $LIMIT"
-fi
-
+# Create directories if they don't exist
 mkdir -p logs/${TASK_NAME}
 mkdir -p pids
 
+# Setup logging
 timestamp=$(date +"%Y%m%d_%H%M%S")
 LOGFILE=logs/${TASK_NAME}/${TASK_NAME}_generate_${timestamp}.log
 PID_FILE=pids/${TASK_NAME}_generate_${timestamp}.pid
 
-echo "=== ${TASK_NAME} Generation Started ===" > $LOGFILE
-echo "Workers: ${WORKERS}" >> $LOGFILE
-if [ -n "$LIMIT" ]; then
-    echo "Limit: ${LIMIT}" >> $LOGFILE
-fi
-: > $PID_FILE
+# Log configuration
+{
+    echo "=== ${TASK_NAME} Generation Started ==="
+    echo "Timestamp: ${timestamp}"
+    echo "JOERN_PATH: ${JOERN_PATH}"
+    echo "Workers: ${WORKERS}"
+    echo "Save path: ${SAVE}"
+    [ -n "$LIMIT" ] && echo "Limit: ${LIMIT}" || echo "Limit: none (full dataset)"
+    echo "Log: ${LOGFILE}"
+    echo "PID: ${PID_FILE}"
+    echo "========================================"
+} | tee ${LOGFILE}
 
-nohup python utils/Joern.py ${COMMON_ARGS} \
-    >> $LOGFILE 2>&1 &
+: > ${PID_FILE}
 
-echo $! >> $PID_FILE
+# Build arguments
+COMMON_ARGS="--workers ${WORKERS} --path ${SAVE} --joern-path ${JOERN_PATH}"
+[ -n "$LIMIT" ] && COMMON_ARGS="$COMMON_ARGS --limit $LIMIT"
 
-echo "View real-time logs with: tail -f $LOGFILE" | tee -a $LOGFILE
-echo "To check if running: ps -p \$(cat $PID_FILE)" | tee -a $LOGFILE
-echo "To stop the process: kill \$(cat $PID_FILE)" | tee -a $LOGFILE
+# Run in background
+nohup python utils/Joern.py ${COMMON_ARGS} >> ${LOGFILE} 2>&1 &
+
+echo $! >> ${PID_FILE}
+
+echo ""
+echo "Job submitted successfully!"
+echo "View real-time logs with: tail -f $LOGFILE"
+echo "Check status: ps -p \$(cat $PID_FILE)"
+echo "Stop job: kill \$(cat $PID_FILE)"

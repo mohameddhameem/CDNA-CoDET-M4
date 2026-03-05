@@ -127,28 +127,32 @@ if __name__ == "__main__":
     import argparse
     parser = argparse.ArgumentParser()
     parser.add_argument('--workers', type=int, default=15)
-    parser.add_argument('--path', type=str, default="CPG")
-    parser.add_argument('--limit', type=int, default=None)
+    parser.add_argument('--path', type=str, default="CPG", help='Path to CPG directory')
+    parser.add_argument('--limit', type=int, default=None, help='Limit number of samples for testing')
+    parser.add_argument('--joern-path', type=str, default=None, help='Path to joern-cli directory. If not provided, uses JOERN_PATH env var or default')
     parser.add_argument('--small_sample', action='store_true', help="Whether to use a small stratified sample for testing")
     args = parser.parse_args()
 
     # 1. Load Dataset
     print("Loading Dataset...")
     dataset = load_dataset("DaniilOr/CoDET-M4")
-    
+
     # Filter to only include samples where 'model' is not None
     data = dataset['train'].filter(lambda x: x['model'] != None)
-        
+
     if args.small_sample:
         data = small_sample(data)
-    
+
     # Apply limit if specified (for testing)
     if args.limit:
         data = data.select(range(min(args.limit, len(data))))
 
     # 2. Configuration
     output_file = f"./{args.path}/raw/cpg_dataset.jsonl"  # Changed filename to indicate raw code
-    joern_path = r'C:\Learning\SMU\City-of-Agents-1\joern-cli' # Update with your path
+    # Determine joern_path: CLI arg > env var > default
+    joern_path = args.joern_path or os.environ.get('JOERN_PATH', r'C:\Learning\SMU\City-of-Agents-1\joern-cli')
+    if not os.path.exists(joern_path):
+        raise FileNotFoundError(f"Joern path not found: {joern_path}. Set --joern-path or JOERN_PATH env var")
     temp_dir = f"./{args.path}/temp_joern_workers"
     
     # Create necessary directories

@@ -1,32 +1,64 @@
 #!/bin/bash
-export CUDA_VISIBLE_DEVICES=0
+
+# ============================================================
+# HPC-Friendly Homogeneous Graph Generation Script
+# ============================================================
+# This script processes CPG data into homogeneous graphs
+#
+# Usage:
+#   bash scripts/generate_homo.sh
+#   WORKERS=64 SAVE=CPG bash scripts/generate_homo.sh
+#
+# Optional environment variables:
+#   WORKERS      - Number of parallel workers (default: 64)
+#   CUDA_DEVICE  - GPU device ID for CUDA (default: 0)
+#   SAVE         - Output directory (default: CPG)
+# ============================================================
+
 export PYTHONIOENCODING=utf-8
 export PYTHONUTF8=1
 export PYTHONPATH="$PWD:$PYTHONPATH"
 export PYTHONUNBUFFERED=1
 
-TASK_NAME="Homo"
+# Set defaults
+CUDA_DEVICE=${CUDA_DEVICE:-0}
 WORKERS=${WORKERS:-64}
-SAVE="CPG"
-COMMON_ARGS="--workers ${WORKERS} \
-            --path ${SAVE}"
+SAVE=${SAVE:-CPG}
 
+# Setup GPU
+export CUDA_VISIBLE_DEVICES=${CUDA_DEVICE}
+
+TASK_NAME="Homo"
+COMMON_ARGS="--workers ${WORKERS} --path ${SAVE}"
+
+# Create directories
 mkdir -p logs/${TASK_NAME}
 mkdir -p pids
 
+# Setup logging
 timestamp=$(date +"%Y%m%d_%H%M%S")
 LOGFILE=logs/${TASK_NAME}/${TASK_NAME}_generate_${timestamp}.log
 PID_FILE=pids/${TASK_NAME}_generate_${timestamp}.pid
 
-echo "=== ${TASK_NAME} Generation Started ===" > $LOGFILE
-echo "Workers: ${WORKERS}" >> $LOGFILE
-: > $PID_FILE
+{
+    echo "=== ${TASK_NAME} Generation Started ==="
+    echo "Timestamp: ${timestamp}"
+    echo "CUDA_VISIBLE_DEVICES: ${CUDA_VISIBLE_DEVICES}"
+    echo "Workers: ${WORKERS}"
+    echo "Save path: ${SAVE}"
+    echo "Log: ${LOGFILE}"
+    echo "========================================"
+} | tee ${LOGFILE}
 
-nohup python utils/cpg2homo.py ${COMMON_ARGS} \
-    >> $LOGFILE 2>&1 &
+: > ${PID_FILE}
 
-echo $! >> $PID_FILE
+# Run in background
+nohup python utils/cpg2homo.py ${COMMON_ARGS} >> ${LOGFILE} 2>&1 &
 
-echo "View real-time logs with: tail -f $LOGFILE" | tee -a $LOGFILE
-echo "To check if running: ps -p \$(cat $PID_FILE)" | tee -a $LOGFILE
-echo "To stop the process: kill \$(cat $PID_FILE)" | tee -a $LOGFILE
+echo $! >> ${PID_FILE}
+
+echo ""
+echo "Job submitted successfully!"
+echo "View real-time logs with: tail -f $LOGFILE"
+echo "Check status: ps -p \$(cat $PID_FILE)"
+echo "Stop job: kill \$(cat $PID_FILE)"
