@@ -177,27 +177,45 @@ def _process_single_record(line_data):
 # ==========================================
 class CPGHeteroDataset(InMemoryDataset):
     def __init__(self, root='./CPG', transform=None, pre_transform=None, 
-                 force_reload=False, num_workers=1):
+                 force_reload=False, num_workers=1, language='python'):
         
         self.force_reload = force_reload
         self.num_workers = num_workers if num_workers is not None else 1
+        self.language = language  # Store language for raw_file_names property
         
         if force_reload:
-            processed_dir = os.path.join(root, 'processed_hetero')
+            processed_dir = os.path.join(root, f'processed_hetero_{language}')
             if os.path.exists(processed_dir):
                 shutil.rmtree(processed_dir)
                 print(f"Removed processed directory: {processed_dir}")
         
         super().__init__(root, transform, pre_transform)
-        self.data, self.slices = torch.load(self.processed_paths[0])
+        
+        # Check if processed file exists before loading
+        processed_file = self.processed_paths[0]
+        if not os.path.exists(processed_file):
+            raise FileNotFoundError(
+                f"\nProcessed dataset not found: {processed_file}\n"
+                f"This usually means no valid data was found during processing.\n"
+                f"Check that:\n"
+                f"  1. Raw file exists: CPG/raw/cpg_dataset_{self.language}.jsonl\n"
+                f"  2. Raw JSONL has valid 'graphml' field (not null)\n"
+                f"  3. Joern.py successfully generated CPG data\n"
+                f"\nTry regenerating CPGs:\n"
+                f"  bash scripts/generate_joern.sh --workers 15\n"
+                f"Then reprocess:\n"
+                f"  CODE_LANG={self.language} bash scripts/generate_hetero.sh"
+            )
+        
+        self.data, self.slices = torch.load(processed_file)
 
     @property
     def raw_file_names(self):
-        return ['cpg_dataset.jsonl']
+        return [f'cpg_dataset_{self.language}.jsonl']
     
     @property
     def processed_dir(self):
-        return os.path.join(self.root, 'processed_hetero')
+        return os.path.join(self.root, f'processed_hetero_{self.language}')
 
     @property
     def processed_file_names(self):

@@ -64,7 +64,8 @@ def main():
     from utils.cpg2hetero import CPGHeteroDataset
     dataset = CPGHeteroDataset(
         root=f'./{args.path}',
-        force_reload=False)
+        force_reload=False,
+        language=args.language)
 
     if args.task_name == 'pretrain':
         exp = ExpPretrain(args, dataset=dataset)

@@ -29,7 +29,7 @@ class JoernRunner:
     def parse_one(self, idx, code_string):
         """
         Process a single code snippet. ONLY Python
-        Returns a dictionary: {'idx': int, 'graphml': str}
+        Returns a dictionary: {'idx': int, 'graphml': str, 'error': str or None}
         """
         # Calculate MD5 hash of the code string
         code_hash = hashlib.md5(code_string.encode('utf-8')).hexdigest()
@@ -42,6 +42,7 @@ class JoernRunner:
         graphml_path = os.path.join(out_dir, "export.xml")
 
         graphml_content = None
+        error_msg = None
 
         try:
             # 1. Write source code (RAW CODE)
@@ -50,26 +51,40 @@ class JoernRunner:
 
             # 2. Joern Parse: Generate CPG binary
             parse_cmd = self.joern_parse if isinstance(self.joern_parse, list) else [self.joern_parse]
-            subprocess.run(
+            parse_result = subprocess.run(
                 parse_cmd + [src_file, "-o", cpg_bin],
-                check=True, capture_output=True, text=True
+                check=False, capture_output=True, text=True, timeout=30
             )
+            
+            if parse_result.returncode != 0:
+                error_msg = f"Joern parse failed: {parse_result.stderr[:200]}"
+                return {'idx': idx, 'code_hash': code_hash, 'graphml': None, 'error': error_msg}
 
             # 3. Joern Export: Convert CPG to GraphML
             export_cmd = self.joern_export if isinstance(self.joern_export, list) else [self.joern_export]
-            subprocess.run(
+            export_result = subprocess.run(
                 export_cmd + [cpg_bin, "-o", out_dir, "--repr", "all", "--format", "graphml"],
-                check=True, capture_output=True, text=True
+                check=False, capture_output=True, text=True, timeout=30
             )
+            
+            if export_result.returncode != 0:
+                error_msg = f"Joern export failed: {export_result.stderr[:200]}"
+                return {'idx': idx, 'code_hash': code_hash, 'graphml': None, 'error': error_msg}
 
             # 4. Read the generated GraphML content
             if os.path.exists(graphml_path):
                 with open(graphml_path, 'r', encoding='utf-8') as f:
                     graphml_content = f.read()
+            else:
+                error_msg = f"GraphML file not created at {graphml_path}"
+                return {'idx': idx, 'code_hash': code_hash, 'graphml': None, 'error': error_msg}
 
+        except subprocess.TimeoutExpired:
+            error_msg = "Joern processing timed out (>30s)"
+            return {'idx': idx, 'code_hash': code_hash, 'graphml': None, 'error': error_msg}
         except Exception as e:
-            # Return None for graphml if failed, but keep idx
-            return {'idx': idx, 'code_hash': code_hash, 'graphml': None, 'error': str(e)}
+            error_msg = f"Exception: {str(e)[:200]}"
+            return {'idx': idx, 'code_hash': code_hash, 'graphml': None, 'error': error_msg}
 
         finally:
             # Cleanup temp files immediately to save space/inodes
@@ -77,7 +92,7 @@ class JoernRunner:
             if os.path.exists(cpg_bin): os.remove(cpg_bin)
             if os.path.exists(out_dir): shutil.rmtree(out_dir, ignore_errors=True)
 
-        return {'idx': idx, 'code_hash': code_hash, 'graphml': graphml_content}
+        return {'idx': idx, 'code_hash': code_hash, 'graphml': graphml_content, 'error': None}
 
 def worker_func(args):
     """Unpack arguments for the worker."""
@@ -148,7 +163,7 @@ if __name__ == "__main__":
         data = data.select(range(min(args.limit, len(data))))
 
     # 2. Configuration
-    output_file = f"./{args.path}/raw/cpg_dataset.jsonl"  # Changed filename to indicate raw code
+    raw_dir = f"./{args.path}/raw"
     # Determine joern_path: CLI arg > env var > default
     joern_path = args.joern_path or os.environ.get('JOERN_PATH', r'C:\Learning\SMU\City-of-Agents-1\joern-cli')
     if not os.path.exists(joern_path):
@@ -156,7 +171,7 @@ if __name__ == "__main__":
     temp_dir = f"./{args.path}/temp_joern_workers"
     
     # Create necessary directories
-    os.makedirs(os.path.dirname(output_file), exist_ok=True)
+    os.makedirs(raw_dir, exist_ok=True)
     
     # Initialize runner configuration
     runner = JoernRunner(temp_dir=temp_dir, joern_path=joern_path)
@@ -169,10 +184,24 @@ if __name__ == "__main__":
         for i, item in enumerate(data)
     ]
 
+    # Get unique languages and prepare file handles
+    unique_languages = set(data['language'])
+    print(f"Found {len(unique_languages)} languages: {sorted(unique_languages)}")
+    
+    # Dictionary to store file handles for each language
+    language_files = {}
+    for lang in unique_languages:
+        output_file = os.path.join(raw_dir, f"cpg_dataset_{lang}.jsonl")
+        language_files[lang] = open(output_file, "w", encoding='utf-8')
+        print(f"Will write {lang} data to: {output_file}")
+
     print(f"Starting processing for {len(process_args)} items with {args.workers} workers...")
     
     # 4. Processing and Writing
-    with open(output_file, "w", encoding='utf-8') as f_out:
+    stats_by_error = {}
+    successful_count = 0
+    
+    try:
         with Pool(args.workers) as pool:
             # Using imap_unordered for speed
             for result in tqdm(pool.imap_unordered(worker_func, process_args), total=len(process_args)):
@@ -189,14 +218,44 @@ if __name__ == "__main__":
                     'source': original_item['source'],
                     # Optional: Store the raw code in JSON for reference
                     'code': original_item['code'], 
-                    'graphml': result['graphml']
+                    'graphml': result['graphml'],
+                    'error': result.get('error')  # Include error information
                 }
                 
-                # Write to JSONL
-                f_out.write(json.dumps(record, ensure_ascii=False) + "\n")
+                # Track statistics
+                if result['graphml'] is not None:
+                    successful_count += 1
+                else:
+                    error_key = result.get('error', 'Unknown error')
+                    stats_by_error[error_key] = stats_by_error.get(error_key, 0) + 1
+                
+                # Write to language-specific JSONL
+                language = original_item['language']
+                language_files[language].write(json.dumps(record, ensure_ascii=False) + "\n")
+    finally:
+        # Close all file handles
+        for lang, f_handle in language_files.items():
+            f_handle.close()
 
     # Cleanup temp directory
     if os.path.exists(temp_dir):
         shutil.rmtree(temp_dir)
         
-    print(f"Done! All raw-code based CPGs saved to {output_file}")
+    print(f"\nDone! Generated per-language CPG datasets:")
+    for lang in sorted(unique_languages):
+        output_file = os.path.join(raw_dir, f"cpg_dataset_{lang}.jsonl")
+        if os.path.exists(output_file):
+            line_count = sum(1 for _ in open(output_file, 'r', encoding='utf-8'))
+            print(f"  - {lang}: {output_file} ({line_count} records)")
+    
+    # Print error statistics
+    print(f"\n=== Processing Statistics ===")
+    print(f"Successful: {successful_count}/{len(process_args)}")
+    print(f"Failed: {len(process_args) - successful_count}/{len(process_args)}")
+    
+    if stats_by_error:
+        print(f"\nFailure Breakdown:")
+        for error_msg, count in sorted(stats_by_error.items(), key=lambda x: -x[1]):
+            print(f"  - {error_msg}: {count}")
+    
+    print(f"\n🔍 Check JSONL files for 'error' field on failed records to diagnose issues.")

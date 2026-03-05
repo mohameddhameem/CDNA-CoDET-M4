@@ -4,18 +4,30 @@
 # HPC-Friendly CPG Generation Script
 # ============================================================
 # This script generates CPG dataset with GraphML via Joern
+# Generates per-language JSONL files for supported languages
+#
+# NOTE: Requires JDK-19 for Python language support.
+#       This script automatically sets JAVA_HOME to use JDK-19.
 #
 # Usage:
-#   bash scripts/generate_joern.sh
+#   bash scripts/generate_joern.sh                    # All languages
 #   WORKERS=32 LIMIT=100 bash scripts/generate_joern.sh
-#   JOERN_PATH=/custom/path/to/joern-cli bash scripts/generate_joern.sh
+#   bash scripts/generate_joern.sh --languages java,cpp,python
+#   JOERN_PATH=/custom/path bash scripts/generate_joern.sh
 #
 # Optional environment variables:
 #   JOERN_PATH   - Path to joern-cli directory (default: /storage/home/dhameem.m.2025/bin/joern/joern-cli)
 #   WORKERS      - Number of parallel workers (default: 15)
 #   LIMIT        - Limit number of samples for testing (default: none)
 #   SAVE         - Output directory (default: CPG)
+#
+# Output:
+#   Generates CPG/raw/cpg_dataset_{language}.jsonl for each processed language
 # ============================================================
+
+# Set JAVA_HOME to JDK-19 (required for Python CPG generation)
+export JAVA_HOME=$HOME/software/jdk-19
+export PATH=$JAVA_HOME/bin:$PATH
 
 # Set defaults
 WORKERS=${WORKERS:-15}
@@ -60,6 +72,7 @@ PID_FILE=pids/${TASK_NAME}_generate_${timestamp}.pid
     echo "Workers: ${WORKERS}"
     echo "Save path: ${SAVE}"
     [ -n "$LIMIT" ] && echo "Limit: ${LIMIT}" || echo "Limit: none (full dataset)"
+    echo "Output: Per-language JSONL files in ${SAVE}/raw/"
     echo "Log: ${LOGFILE}"
     echo "PID: ${PID_FILE}"
     echo "========================================"

@@ -265,3 +265,12 @@ for problem in master["problems"]:
     print(problem["problem_id"], problem["problem_name"], problem["samples_count"])
 ```
 
+# Full dataset generation
+bash scripts/generate_joern.sh --workers 15
+
+# Or with a larger test sample
+LIMIT=100 bash scripts/generate_joern.sh --workers 15
+
+
+CODE_LANG=python bash scripts/generate_homo.sh
+CODE_LANG=python bash scripts/generate_hetero.sh
