@@ -43,7 +43,7 @@ do
     echo "Seed: ${SEED}" >> $LOGFILE
     echo "====================================" >> $LOGFILE
 
-    nohup python run_experiments.py ${COMMON_ARGS} --seed ${SEED} >> $LOGFILE 2>&1 &
+    nohup python run.py ${COMMON_ARGS} --seed ${SEED} >> $LOGFILE 2>&1 &
     echo $! >> $PID_FILE
     sleep 5
 done

@@ -138,4 +138,9 @@ Thumbs.db
 *.tmp
 *.temp
 
-/workspace.iml
+workspace.iml
+/old
+/CPG
+/joern-cli
+/joern
+*.pid

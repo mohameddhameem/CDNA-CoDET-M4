@@ -1,16 +1,19 @@
 #!/bin/bash
-export CUDA_VISIBLE_DEVICES=1
 export PYTHONIOENCODING=utf-8
 export PYTHONUTF8=1
 export PYTHONPATH="$PWD:$PYTHONPATH"
 export PYTHONUNBUFFERED=1
 
-TASK_NAME="Hetero"
-WORKERS=${WORKERS:-64}
+TASK_NAME="Joern"
+WORKERS=${WORKERS:-15}
+LIMIT=${LIMIT:-}  # Optional limit for testing
 SAVE="CPG"
-COMMON_ARGS="--workers ${WORKERS} \
-            --path ${SAVE}"
 
+COMMON_ARGS="--workers ${WORKERS} --path ${SAVE}"
+
+if [ -n "$LIMIT" ]; then
+    COMMON_ARGS="$COMMON_ARGS --limit $LIMIT"
+fi
 
 mkdir -p logs/${TASK_NAME}
 mkdir -p pids
@@ -21,9 +24,12 @@ PID_FILE=pids/${TASK_NAME}_generate_${timestamp}.pid
 
 echo "=== ${TASK_NAME} Generation Started ===" > $LOGFILE
 echo "Workers: ${WORKERS}" >> $LOGFILE
+if [ -n "$LIMIT" ]; then
+    echo "Limit: ${LIMIT}" >> $LOGFILE
+fi
 : > $PID_FILE
 
-nohup python utils/cpg2hetero.py ${COMMON_ARGS} \
+nohup python utils/Joern.py ${COMMON_ARGS} \
     >> $LOGFILE 2>&1 &
 
 echo $! >> $PID_FILE
