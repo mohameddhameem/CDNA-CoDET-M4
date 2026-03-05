@@ -8,7 +8,7 @@ from datasets import load_dataset, concatenate_datasets
 from tqdm import tqdm
 
 class JoernRunner:
-    def __init__(self, temp_dir="./temp_joern", joern_path=None):
+    def __init__(self, temp_dir="./temp_joern", joern_path='/storage/home/dhameem.m.2025/bin/joern/joern-cli'):
         """
         Initialize runner with a temporary directory for intermediate processing.
         Uses java -cp CLI invocation instead of shell wrappers to avoid Windows path issues.

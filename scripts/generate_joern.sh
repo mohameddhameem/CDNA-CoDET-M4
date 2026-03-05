@@ -6,13 +6,12 @@
 # This script generates CPG dataset with GraphML via Joern
 #
 # Usage:
-#   JOERN_PATH=/path/to/joern-cli bash scripts/generate_joern.sh
-#   JOERN_PATH=/path/to/joern-cli WORKERS=32 LIMIT=100 bash scripts/generate_joern.sh
-#
-# Required environment variables:
-#   JOERN_PATH   - Path to joern-cli directory (absolute path)
+#   bash scripts/generate_joern.sh
+#   WORKERS=32 LIMIT=100 bash scripts/generate_joern.sh
+#   JOERN_PATH=/custom/path/to/joern-cli bash scripts/generate_joern.sh
 #
 # Optional environment variables:
+#   JOERN_PATH   - Path to joern-cli directory (default: /storage/home/dhameem.m.2025/bin/joern/joern-cli)
 #   WORKERS      - Number of parallel workers (default: 15)
 #   LIMIT        - Limit number of samples for testing (default: none)
 #   SAVE         - Output directory (default: CPG)
@@ -20,15 +19,9 @@
 
 # Set defaults
 WORKERS=${WORKERS:-15}
-LIMIT=${LIMIT:-}
+LIMIT=${LIMIT:-2}
 SAVE=${SAVE:-CPG}
-
-# Check JOERN_PATH is set
-if [ -z "$JOERN_PATH" ]; then
-    echo "ERROR: JOERN_PATH environment variable not set"
-    echo "Usage: JOERN_PATH=/path/to/joern-cli bash $0"
-    exit 1
-fi
+JOERN_PATH=${JOERN_PATH:-/storage/home/dhameem.m.2025/bin/joern/joern-cli}
 
 # Check JOERN_PATH exists
 if [ ! -d "$JOERN_PATH" ]; then
