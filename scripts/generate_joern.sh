@@ -31,7 +31,7 @@ export PATH=$JAVA_HOME/bin:$PATH
 
 # Set defaults
 WORKERS=${WORKERS:-15}
-LIMIT=${LIMIT:-2}
+LIMIT=${LIMIT:-}
 SAVE=${SAVE:-CPG}
 JOERN_PATH=${JOERN_PATH:-/storage/home/dhameem.m.2025/bin/joern/joern-cli}
 

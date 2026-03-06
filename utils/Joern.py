@@ -26,10 +26,11 @@ class JoernRunner:
             self.joern_parse = "joern-parse"
             self.joern_export = "joern-export"
 
-    def parse_one(self, idx, code_string):
+    def parse_one(self, idx, code_string, cache_dir=None, timeout=30):
         """
         Process a single code snippet. ONLY Python
-        Returns a dictionary: {'idx': int, 'graphml': str, 'error': str or None}
+        Writes GraphML to cache file instead of returning large content through pipe.
+        Returns a dictionary: {'idx': int, 'code_hash': str, 'cache_file': str or None, 'error': str or None}
         """
         # Calculate MD5 hash of the code string
         code_hash = hashlib.md5(code_string.encode('utf-8')).hexdigest()
@@ -41,7 +42,7 @@ class JoernRunner:
         out_dir = os.path.join(self.temp_dir, f"out_{uid}")
         graphml_path = os.path.join(out_dir, "export.xml")
 
-        graphml_content = None
+        cache_file = None
         error_msg = None
 
         try:
@@ -51,40 +52,50 @@ class JoernRunner:
 
             # 2. Joern Parse: Generate CPG binary
             parse_cmd = self.joern_parse if isinstance(self.joern_parse, list) else [self.joern_parse]
-            parse_result = subprocess.run(
-                parse_cmd + [src_file, "-o", cpg_bin],
-                check=False, capture_output=True, text=True, timeout=30
-            )
+            try:
+                parse_result = subprocess.run(
+                    parse_cmd + [src_file, "-o", cpg_bin],
+                    check=False, capture_output=True, text=True, timeout=timeout
+                )
+            except subprocess.TimeoutExpired:
+                error_msg = f"Joern parse timed out (>{timeout}s)"
+                return {'idx': idx, 'code_hash': code_hash, 'cache_file': None, 'error': error_msg}
             
             if parse_result.returncode != 0:
                 error_msg = f"Joern parse failed: {parse_result.stderr[:200]}"
-                return {'idx': idx, 'code_hash': code_hash, 'graphml': None, 'error': error_msg}
+                return {'idx': idx, 'code_hash': code_hash, 'cache_file': None, 'error': error_msg}
 
             # 3. Joern Export: Convert CPG to GraphML
             export_cmd = self.joern_export if isinstance(self.joern_export, list) else [self.joern_export]
-            export_result = subprocess.run(
-                export_cmd + [cpg_bin, "-o", out_dir, "--repr", "all", "--format", "graphml"],
-                check=False, capture_output=True, text=True, timeout=30
-            )
+            try:
+                export_result = subprocess.run(
+                    export_cmd + [cpg_bin, "-o", out_dir, "--repr", "all", "--format", "graphml"],
+                    check=False, capture_output=True, text=True, timeout=timeout
+                )
+            except subprocess.TimeoutExpired:
+                error_msg = f"Joern export timed out (>{timeout}s)"
+                return {'idx': idx, 'code_hash': code_hash, 'cache_file': None, 'error': error_msg}
             
             if export_result.returncode != 0:
                 error_msg = f"Joern export failed: {export_result.stderr[:200]}"
-                return {'idx': idx, 'code_hash': code_hash, 'graphml': None, 'error': error_msg}
+                return {'idx': idx, 'code_hash': code_hash, 'cache_file': None, 'error': error_msg}
 
-            # 4. Read the generated GraphML content
+            # 4. Write GraphML to cache file (avoid large serialization through pipe)
             if os.path.exists(graphml_path):
-                with open(graphml_path, 'r', encoding='utf-8') as f:
-                    graphml_content = f.read()
+                if cache_dir:
+                    os.makedirs(cache_dir, exist_ok=True)
+                    cache_file = os.path.join(cache_dir, f"{idx}_{code_hash}.xml")
+                    shutil.copy(graphml_path, cache_file)
             else:
                 error_msg = f"GraphML file not created at {graphml_path}"
-                return {'idx': idx, 'code_hash': code_hash, 'graphml': None, 'error': error_msg}
+                return {'idx': idx, 'code_hash': code_hash, 'cache_file': None, 'error': error_msg}
 
         except subprocess.TimeoutExpired:
-            error_msg = "Joern processing timed out (>30s)"
-            return {'idx': idx, 'code_hash': code_hash, 'graphml': None, 'error': error_msg}
+            error_msg = f"Joern processing timed out (>{timeout}s)"
+            return {'idx': idx, 'code_hash': code_hash, 'cache_file': None, 'error': error_msg}
         except Exception as e:
             error_msg = f"Exception: {str(e)[:200]}"
-            return {'idx': idx, 'code_hash': code_hash, 'graphml': None, 'error': error_msg}
+            return {'idx': idx, 'code_hash': code_hash, 'cache_file': None, 'error': error_msg}
 
         finally:
             # Cleanup temp files immediately to save space/inodes
@@ -92,12 +103,12 @@ class JoernRunner:
             if os.path.exists(cpg_bin): os.remove(cpg_bin)
             if os.path.exists(out_dir): shutil.rmtree(out_dir, ignore_errors=True)
 
-        return {'idx': idx, 'code_hash': code_hash, 'graphml': graphml_content, 'error': None}
+        return {'idx': idx, 'code_hash': code_hash, 'cache_file': cache_file, 'error': None}
 
 def worker_func(args):
     """Unpack arguments for the worker."""
-    runner, idx, code = args
-    return runner.parse_one(idx, code)
+    runner, idx, code, cache_dir, timeout = args
+    return runner.parse_one(idx, code, cache_dir=cache_dir, timeout=timeout)
 
 def small_sample(data):
     # Stratified sampling by language, split, and model
@@ -146,16 +157,21 @@ if __name__ == "__main__":
     parser.add_argument('--language', type=str, default=None, help='Optional language filter (e.g., python, java, cpp)')
     parser.add_argument('--limit', type=int, default=None, help='Limit number of samples for testing')
     parser.add_argument('--joern-path', type=str, default=None, help='Path to joern-cli directory. If not provided, uses JOERN_PATH env var or default')
+    parser.add_argument('--timeout', type=int, default=None, help='Timeout for Joern parse/export in seconds (default: 30, env var JOERN_TIMEOUT overrides)')
     parser.add_argument('--small_sample', action='store_true', help="Whether to use a small stratified sample for testing")
     parser.add_argument('--no-resume', action='store_true', help='Disable resume mode and recreate output JSONL files')
     args = parser.parse_args()
+    
+    # Resolve timeout: CLI arg > env var > default
+    timeout = args.timeout or int(os.environ.get('JOERN_TIMEOUT', 30))
+    print(f"Joern timeout: {timeout}s")
 
     # 1. Load Dataset
     print("Loading Dataset...")
     dataset = load_dataset("DaniilOr/CoDET-M4")
 
     # Filter to only include samples where 'model' is not None
-    data = dataset['train'].filter(lambda x: x['model'] != None)
+    data = dataset['train'].filter(lambda x: x['model'] != None and x['split'] == "val")
 
     # Optional language-level filtering for targeted generation jobs
     if args.language:
@@ -232,6 +248,9 @@ if __name__ == "__main__":
     # 3. Prepare Arguments
     # === KEY CHANGE HERE: Using item['code'] instead of item['cleaned_code'] ===
     print("Preparing arguments (using RAW 'code' column)...")
+    cache_dir = f"./{args.path}/graphml_cache"
+    os.makedirs(cache_dir, exist_ok=True)
+    
     process_args = []
     skipped_existing = 0
     for i, item in enumerate(data):
@@ -243,7 +262,7 @@ if __name__ == "__main__":
         ):
             skipped_existing += 1
             continue
-        process_args.append((runner, i, item['code']))
+        process_args.append((runner, i, item['code'], cache_dir, timeout))
 
     print(f"Found {len(unique_languages)} languages: {sorted(unique_languages)}")
     if resume_enabled:
@@ -272,6 +291,17 @@ if __name__ == "__main__":
                 
                 # Retrieve original item to get labels
                 original_item = data[result['idx']]
+                
+                # Read GraphML from cache file if it exists
+                graphml_content = None
+                if result.get('cache_file') and os.path.exists(result['cache_file']):
+                    try:
+                        with open(result['cache_file'], 'r', encoding='utf-8') as f:
+                            graphml_content = f.read()
+                        os.remove(result['cache_file'])
+                    except Exception as cache_err:
+                        result['error'] = f"Failed to read cache: {str(cache_err)[:100]}"
+                
                 record = {
                     'idx': result['idx'],  # Keep original index just in case
                     'hash': result['code_hash'],     # Use hash as unique identifier
@@ -282,12 +312,12 @@ if __name__ == "__main__":
                     'source': original_item['source'],
                     # Optional: Store the raw code in JSON for reference
                     'code': original_item['code'], 
-                    'graphml': result['graphml'],
+                    'graphml': graphml_content,
                     'error': result.get('error')  # Include error information
                 }
                 
                 # Track statistics
-                if result['graphml'] is not None:
+                if graphml_content is not None:
                     successful_count += 1
                 else:
                     error_key = result.get('error', 'Unknown error')
@@ -302,9 +332,13 @@ if __name__ == "__main__":
         for lang, f_handle in language_files.items():
             f_handle.close()
 
-    # Cleanup temp directory
-    if os.path.exists(temp_dir):
-        shutil.rmtree(temp_dir)
+        # Cleanup cache directory
+        if os.path.exists(cache_dir):
+            shutil.rmtree(cache_dir, ignore_errors=True)
+        
+        # Cleanup temp directory
+        if os.path.exists(temp_dir):
+            shutil.rmtree(temp_dir)
         
     print(f"\nDone! Generated per-language CPG datasets:")
     for lang in sorted(unique_languages):

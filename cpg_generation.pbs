@@ -2,7 +2,7 @@
 #PBS -N cpg_generation
 #PBS -e logs/cpg_generation_error.log
 #PBS -o logs/cpg_generation_output.log
-#PBS -l select=1:ncpus=128
+#PBS -l select=1:ncpus=64
 #PBS -q long
 #PBS -l walltime=12:00:00
 
@@ -33,7 +33,7 @@ mkdir -p logs/CPG_Generation
 
 ## Set job parameters
 TASK_NAME="CPG_Python"
-WORKERS=128
+WORKERS=64
 SAVE="CPG"
 CODE_LANG="python" ##python
 JOERN_PATH=/storage/home/dhameem.m.2025/bin/joern/joern-cli
@@ -41,7 +41,10 @@ JOERN_PATH=/storage/home/dhameem.m.2025/bin/joern/joern-cli
 # Resume behavior (default: resume enabled; set NO_RESUME=1 to force full restart)
 NO_RESUME=${NO_RESUME:-0}
 
-COMMON_ARGS="--workers ${WORKERS} --path ${SAVE} --language ${CODE_LANG} --joern-path ${JOERN_PATH}"
+# Joern timeout in seconds (default: 30; increase for slow HPC systems)
+JOERN_TIMEOUT=${JOERN_TIMEOUT:-30}
+
+COMMON_ARGS="--workers ${WORKERS} --path ${SAVE} --language ${CODE_LANG} --joern-path ${JOERN_PATH} --timeout ${JOERN_TIMEOUT}"
 if [ "$NO_RESUME" = "1" ]; then
     COMMON_ARGS="$COMMON_ARGS --no-resume"
 fi
@@ -56,6 +59,7 @@ LOGFILE=logs/CPG_Generation/${TASK_NAME}_generate_${timestamp}.log
     echo "Language: ${CODE_LANG}"
     echo "Workers: ${WORKERS}"
     echo "Save path: ${SAVE}"
+    echo "Joern timeout: ${JOERN_TIMEOUT}s"
     echo "JOERN_PATH: ${JOERN_PATH}"
     echo "JAVA_HOME: ${JAVA_HOME}"
     echo "Resume mode: $([ "$NO_RESUME" = "1" ] && echo "DISABLED (force full restart)" || echo "ENABLED (continue from last checkpoint)")"
