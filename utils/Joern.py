@@ -143,9 +143,11 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument('--workers', type=int, default=15)
     parser.add_argument('--path', type=str, default="CPG", help='Path to CPG directory')
+    parser.add_argument('--language', type=str, default=None, help='Optional language filter (e.g., python, java, cpp)')
     parser.add_argument('--limit', type=int, default=None, help='Limit number of samples for testing')
     parser.add_argument('--joern-path', type=str, default=None, help='Path to joern-cli directory. If not provided, uses JOERN_PATH env var or default')
     parser.add_argument('--small_sample', action='store_true', help="Whether to use a small stratified sample for testing")
+    parser.add_argument('--no-resume', action='store_true', help='Disable resume mode and recreate output JSONL files')
     args = parser.parse_args()
 
     # 1. Load Dataset
@@ -154,6 +156,19 @@ if __name__ == "__main__":
 
     # Filter to only include samples where 'model' is not None
     data = dataset['train'].filter(lambda x: x['model'] != None)
+
+    # Optional language-level filtering for targeted generation jobs
+    if args.language:
+        requested_language = args.language.strip().lower()
+        available_languages = sorted(set(data['language']))
+        normalized_available = {lang.lower() for lang in available_languages}
+        if requested_language not in normalized_available:
+            raise ValueError(
+                f"Requested language '{args.language}' not found in dataset. "
+                f"Available languages: {available_languages}"
+            )
+        data = data.filter(lambda x: x['language'].lower() == requested_language)
+        print(f"Applied language filter: {requested_language} ({len(data)} samples before limit/sampling)")
 
     if args.small_sample:
         data = small_sample(data)
@@ -176,26 +191,75 @@ if __name__ == "__main__":
     # Initialize runner configuration
     runner = JoernRunner(temp_dir=temp_dir, joern_path=joern_path)
 
+    # Discover output languages and optionally load already-processed state
+    unique_languages = set(data['language'])
+    resume_enabled = not args.no_resume
+    processed_indices_by_language = {lang: set() for lang in unique_languages}
+    processed_hashes_by_language = {lang: set() for lang in unique_languages}
+
+    if resume_enabled:
+        for lang in unique_languages:
+            output_file = os.path.join(raw_dir, f"cpg_dataset_{lang}.jsonl")
+            if not os.path.exists(output_file):
+                continue
+
+            loaded_count = 0
+            malformed_count = 0
+            with open(output_file, 'r', encoding='utf-8') as f:
+                for line in f:
+                    line = line.strip()
+                    if not line:
+                        continue
+                    try:
+                        rec = json.loads(line)
+                        idx = rec.get('idx')
+                        rec_hash = rec.get('hash')
+                        if isinstance(idx, int):
+                            processed_indices_by_language[lang].add(idx)
+                        if isinstance(rec_hash, str):
+                            processed_hashes_by_language[lang].add(rec_hash)
+                        loaded_count += 1
+                    except json.JSONDecodeError:
+                        # Ignore partial/corrupt lines (common when walltime kills a running job)
+                        malformed_count += 1
+
+            print(
+                f"Resume scan for {lang}: loaded={loaded_count}, "
+                f"malformed_ignored={malformed_count}, "
+                f"known_indices={len(processed_indices_by_language[lang])}"
+            )
+
     # 3. Prepare Arguments
     # === KEY CHANGE HERE: Using item['code'] instead of item['cleaned_code'] ===
     print("Preparing arguments (using RAW 'code' column)...")
-    process_args = [
-        (runner, i, item['code']) 
-        for i, item in enumerate(data)
-    ]
+    process_args = []
+    skipped_existing = 0
+    for i, item in enumerate(data):
+        code_hash = hashlib.md5(item['code'].encode('utf-8')).hexdigest()
+        language = item['language']
+        if resume_enabled and (
+            i in processed_indices_by_language[language]
+            or code_hash in processed_hashes_by_language[language]
+        ):
+            skipped_existing += 1
+            continue
+        process_args.append((runner, i, item['code']))
 
-    # Get unique languages and prepare file handles
-    unique_languages = set(data['language'])
     print(f"Found {len(unique_languages)} languages: {sorted(unique_languages)}")
+    if resume_enabled:
+        print(f"Resume mode enabled. Skipping {skipped_existing} existing records.")
+    else:
+        print("Resume mode disabled. Existing output files will be overwritten.")
     
     # Dictionary to store file handles for each language
     language_files = {}
     for lang in unique_languages:
         output_file = os.path.join(raw_dir, f"cpg_dataset_{lang}.jsonl")
-        language_files[lang] = open(output_file, "w", encoding='utf-8')
+        file_mode = "a" if resume_enabled else "w"
+        language_files[lang] = open(output_file, file_mode, encoding='utf-8')
         print(f"Will write {lang} data to: {output_file}")
 
-    print(f"Starting processing for {len(process_args)} items with {args.workers} workers...")
+    print(f"Starting processing for {len(process_args)} pending items with {args.workers} workers...")
     
     # 4. Processing and Writing
     stats_by_error = {}
@@ -232,6 +296,7 @@ if __name__ == "__main__":
                 # Write to language-specific JSONL
                 language = original_item['language']
                 language_files[language].write(json.dumps(record, ensure_ascii=False) + "\n")
+                language_files[language].flush()
     finally:
         # Close all file handles
         for lang, f_handle in language_files.items():

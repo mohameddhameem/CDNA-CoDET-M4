@@ -1,0 +1,57 @@
+#!/bin/bash
+#PBS -N test_cuda
+#PBS -e logs/test_cuda_error.log
+#PBS -o logs/test_cuda_output.log
+#PBS -l select=1:ncpus=4
+#PBS -q GPU
+#PBS -l walltime=00:30:00
+
+## Note: To test on GPU queue, use: #PBS -q GPU
+## To test on CPU queue, use: #PBS -q short
+
+## Unload all loaded modulefiles
+module purge
+
+## Navigate to working directory
+cd $HOME/City-of-Agents
+
+## Activate virtual environment
+source myenv311/bin/activate
+
+## Create logs directory if it doesn't exist
+mkdir -p logs
+
+## Set Python environment variables
+export PYTHONIOENCODING=utf-8
+export PYTHONUTF8=1
+export PYTHONPATH="$PWD:$PYTHONPATH"
+export PYTHONUNBUFFERED=1
+
+## Log job information
+echo "=========================================="
+echo "CUDA Test Job Started"
+echo "=========================================="
+echo "Job ID: $PBS_JOBID"
+echo "Job Name: $PBS_JOBNAME"
+echo "Node: $(hostname)"
+echo "Start Time: $(date)"
+echo "Working Directory: $(pwd)"
+echo "Python: $(which python)"
+echo "Python Version: $(python --version)"
+echo "=========================================="
+echo ""
+
+## Run the CUDA test script
+python test_cuda.py
+
+## Capture exit code
+EXIT_CODE=$?
+
+echo ""
+echo "=========================================="
+echo "Job Completed"
+echo "Exit Code: $EXIT_CODE"
+echo "End Time: $(date)"
+echo "=========================================="
+
+exit $EXIT_CODE

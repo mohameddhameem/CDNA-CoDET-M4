@@ -1,0 +1,77 @@
+#!/bin/bash
+#PBS -N cpg_generation
+#PBS -e logs/cpg_generation_error.log
+#PBS -o logs/cpg_generation_output.log
+#PBS -l select=1:ncpus=128
+#PBS -q long
+#PBS -l walltime=12:00:00
+
+## Unload all loaded modulefiles
+module purge
+
+## load python module if needed (optional, we'll use venv)
+# module load python/3.9.13
+
+## Navigate to working directory
+cd $HOME/City-of-Agents
+
+## Activate virtual environment
+source myenv311/bin/activate
+
+## Set JAVA_HOME to JDK-19 (required for Python CPG generation)
+export JAVA_HOME=$HOME/software/jdk-19
+export PATH=$JAVA_HOME/bin:$PATH
+
+## Set Python environment variables for better compatibility
+export PYTHONIOENCODING=utf-8
+export PYTHONUTF8=1
+export PYTHONPATH="$PWD:$PYTHONPATH"
+export PYTHONUNBUFFERED=1
+
+## Create necessary directories
+mkdir -p logs/CPG_Generation
+
+## Set job parameters
+TASK_NAME="CPG_Python"
+WORKERS=128
+SAVE="CPG"
+CODE_LANG="python" ##python
+JOERN_PATH=/storage/home/dhameem.m.2025/bin/joern/joern-cli
+
+# Resume behavior (default: resume enabled; set NO_RESUME=1 to force full restart)
+NO_RESUME=${NO_RESUME:-0}
+
+COMMON_ARGS="--workers ${WORKERS} --path ${SAVE} --language ${CODE_LANG} --joern-path ${JOERN_PATH}"
+if [ "$NO_RESUME" = "1" ]; then
+    COMMON_ARGS="$COMMON_ARGS --no-resume"
+fi
+
+## Setup logging
+timestamp=$(date +"%Y%m%d_%H%M%S")
+LOGFILE=logs/CPG_Generation/${TASK_NAME}_generate_${timestamp}.log
+
+{
+    echo "=== ${TASK_NAME} Generation Started ==="
+    echo "Timestamp: ${timestamp}"
+    echo "Language: ${CODE_LANG}"
+    echo "Workers: ${WORKERS}"
+    echo "Save path: ${SAVE}"
+    echo "JOERN_PATH: ${JOERN_PATH}"
+    echo "JAVA_HOME: ${JAVA_HOME}"
+    echo "Resume mode: $([ "$NO_RESUME" = "1" ] && echo "DISABLED (force full restart)" || echo "ENABLED (continue from last checkpoint)")"
+    echo "Working directory: $(pwd)"
+    echo "Virtual environment: $(which python)"
+    echo "Java version: $(java -version 2>&1 | head -n 1)"
+    echo "========================================"
+} | tee ${LOGFILE}
+
+## Run CPG generation (runs in foreground - PBS handles it)
+python utils/Joern.py ${COMMON_ARGS} 2>&1 | tee -a ${LOGFILE}
+
+{
+    echo ""
+    echo "========================================"
+    echo "CPG Generation Completed"
+    echo "End Time: $(date)"
+    echo "========================================"
+} | tee -a ${LOGFILE}

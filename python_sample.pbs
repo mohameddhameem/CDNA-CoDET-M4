@@ -1,0 +1,25 @@
+#!/bin/bash
+#PBS -N pythonjob
+#PBS -e error.log
+#PBS -l select=1:ncpus=1
+#PBS -q short
+##PBS -q long
+##PBS -q GPU
+##PBS -m abe
+##PBS -M emailaddress@smu.edu.sg
+#PBS -l walltime=03:00:00
+
+## Unload all loaded modulefiles
+module purge
+
+## load module
+module load python/3.9.13
+
+## This is to load the python virtual environment
+## It is assumed that the name of your python virtual environment is "myenv"
+## Please uncomment the below when needed
+# source ~/myenv/bin/activate
+
+cd $HOME/omega-samples/Python
+
+python samplePython.py
