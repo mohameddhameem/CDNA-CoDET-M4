@@ -1,134 +1,137 @@
-# LLM-4-SE
-LLM for Software Engineering
+# CDNA-CoDET-M4
 
-This repository contains experiments and utilities for using large language models
-to reason about and transform software systems as a "city of agents".
+Code authorship attribution using code property graphs and graph-text models.
 
-## Quick start
+This project extends the original [CoDET-M4 dataset](https://huggingface.co/datasets/DaniilOr/CoDET-M4) 
+by enriching it with **Code Property Graph (CPG)** representations extracted via Joern static analysis. 
+The enhanced dataset is published as **CDNA-CoDET-M4** on HuggingFace and used for training 
+graph-based neural models to attribute code authorship across multiple LLMs.
 
-1. **Create and activate a virtual environment** (recommended):
-   - `python -m venv .venv`
-   - macOS/Linux: `source .venv/bin/activate`
-   - Windows: `.\.venv\Scripts\activate`
-2. **Install base dependencies** (always):
-   - `python -m pip install --upgrade pip`
-   - `python -m pip install -r requirements.txt`
-3. **Optional: install CUDA 12.1 PyG extensions** (Linux/Windows GPU only):
-   - `python -m pip install -r requirements-cu121.txt`
-4. **Run an example pipeline** (from the repo root):
-   - `python build_city.py`
-   - or open one of the notebooks under `notebooks/` in Jupyter / VS Code.
+## Dataset
 
-## Project structure
+**CDNA-CoDET-M4** is available on HuggingFace:  
+https://huggingface.co/datasets/mohameddhameem/CDNA-CoDET-M4
 
-- **Root Python scripts**: core utilities and pipelines for the project  
-  - `build_city.py`, `build_city_buildings.py`, `build_city_research.py`, `build_city_v2.py`  
-  - `clean_data.py`, `generate_simluation.py`, `universal_parser.py`  
-  - Graph/feature utilities: `ast2pyg.py`, `pyg_creator.py`, `create_feature.py`, `CodeCLIP.py`, `Joern.py`
+This is an enhanced version of the original CoDET-M4 dataset with two configurations:
 
-- **`notebooks/`**: interactive experimentation and demos  
-  - `Experiment_1.ipynb`  
-  - `demo2.ipynb`  
-  - `demo6.ipynb`
+- **`hetero`**: Full heterogeneous Code Property Graphs (33K+ samples, ~11 GB)
+  - Node and edge structures from AST, CFG, PDG
+  - GraphML serialized format
+  - Best for graph neural network training
 
-- **`outputs/`**: generated artifacts and data dumps  
-  - City visualizations: `city_map*.html`  
-  - Simulation data: `simulation_data.csv`
+- **`scalar`**: Aggregated structural metrics (77K+ samples, ~26 GB)
+  - 22 precomputed graph features (complexity, density, fan-in/fan-out, etc.)
+  - Tabular format suitable for traditional ML
+  - Better for interpretability studies
 
-- **`scripts/`**: helper shell scripts  
-  - `scripts/generate_graphml.sh`
-
-- **`requirements.txt`**: base dependencies for data/modeling and CPU-friendly setup
-- **`requirements-cu121.txt`**: optional CUDA 12.1 + PyG extension packages
-
-## Golden sample dataset
-
-The `dataset/golden sample data` folder contains a **golden evaluation dataset**
-built from Codeforces problems and multiple code-generation models. It is intended
-for benchmarking and analysis of model‑written code versus human solutions.
-
-### High-level summary
-
-- **Problems**: 55 matched Codeforces problems (e.g. `1381/B Unmerge`, `1778/A Flip Flop Sum`)
-- **Total samples**: 2,623 code samples
-- **Models**:
-  - `human` – accepted human submissions from Codeforces (via Kaggle)
-  - `gpt` – GPT‑4o samples (from CoDeT‑M4 on HuggingFace)
-  - `codellama` – CodeLlama‑7B samples (from CoDeT‑M4)
-  - `llama3.1` – Llama‑3.1‑8B samples (from CoDeT‑M4 / raw JSON)
-- **Languages**: `python`, `java`, `cpp`
-- **Source datasets**: `DaniilOr/CoDET-M4` (HuggingFace) + raw JSON dumps from the original authors
-
-The canonical machine‑readable overview of these counts and metadata is
-`dataset/golden sample data/golden_sample_master.json`.
-
-### Dataset folder layout
-
-- **`dataset/golden sample data/code/`** – raw code files grouped by problem  
-  - Layout: `code/<problem_id>/<model>_<language>.<ext>`  
-  - Example: `code/1381_B/human_cpp.cpp`, `code/1381_B/gpt4o_python.py`
-
-- **`dataset/golden sample data/golden_sample_code.jsonl`** – one row per code sample  
-  Key fields:
-  - `problem_id`, `contest_id`, `problem_index`, `problem_name`
-  - `model`, `language`, `code`, `cleaned_code`
-  - `code_file` (relative path under `code/`)
-  - Static features such as `feature_avgFunctionLength`, `feature_maintainabilityIndex`,
-    `loc`, `char_count`, `token_count_approx`
-
-- **`dataset/golden sample data/golden_sample_metadata.csv`** – per‑sample CSV metadata  
-  - Problem columns: `problem_id`, `contest_id`, `difficulty_rating`, `tags`, `solved_count`
-  - Model / language columns: `model`, `model_display`, `language`, `source_type`, `hf_source`
-  - Feature columns: `feature_*`, plus `loc`, `char_count`, `token_count_approx`, `code_file`
-
-- **`dataset/golden sample data/golden_sample_problems.csv`** – per‑problem summary  
-  - One row per Codeforces problem
-  - Columns include: `problem_id`, `contest_id`, `problem_index`, `problem_name`,
-    `difficulty_rating`, `tags`, `solved_count`, `codeforces_url`,
-    `total_samples`, `models`, `languages`
-
-- **`dataset/golden sample data/golden_sample_master.json`** – master summary file  
-  - Top‑level keys: `description`, `models`, `model_descriptions`, `languages`,
-    `source_dataset`, `matching_methods`, `total_problems`, `total_samples`
-  - `problems`: array of per‑problem objects with `problem_id`, `problem_name`,
-    `difficulty_rating`, `tags`, `codeforces_url`, `samples_count`,
-    `models_present`, `languages_present`
-
-- **Task guides** – markdown documentation about how the dataset was constructed  
-  - `guide-task-1.6-1.7-treesitter.md`  
-  - `guide-task-1.8-joern.md`  
-  - `guide-task-1.11-visualization.md`
-
-### Basic dataset usage examples
-
-- **Python: iterate over all samples**
+Load the dataset:
 
 ```python
-import json
-from pathlib import Path
+from datasets import load_dataset
 
-root = Path("dataset") / "golden sample data"
-jsonl_path = root / "golden_sample_code.jsonl"
+# Heterogeneous graphs for GNN training
+hetero = load_dataset("mohameddhameem/CDNA-CoDET-M4", "hetero")
 
-with jsonl_path.open("r", encoding="utf-8") as f:
-    for line in f:
-        row = json.loads(line)
-        # row["problem_id"], row["model"], row["language"], row["code"], ...
+# Scalar features for baseline models
+scalar = load_dataset("mohameddhameem/CDNA-CoDET-M4", "scalar")
 ```
 
-- **Python: load per‑problem summary**
+## Workflow
 
-```python
-import json
-from pathlib import Path
+1. **Source**: Original CoDET-M4 dataset (~150K samples, 6 LLM models + human)
+2. **CPG Extraction**: Joern static analyzer converts code to control/data flow graphs
+3. **Heterogeneous Graph**: Multi-edge-type graph combining AST, CFG, PDG
+4. **Publishing**: Enhanced dataset uploaded to HuggingFace as CDNA-CoDET-M4
+5. **Training**: Graph-text models (CodeCLIP-style) for code authorship classification
 
-master = json.loads(
-    (Path("dataset") / "golden sample data" / "golden_sample_master.json")
-        .read_text(encoding="utf-8")
-)
+## Setup
 
-print(master["total_problems"], master["total_samples"])
-for problem in master["problems"]:
-    print(problem["problem_id"], problem["problem_name"], problem["samples_count"])
+```bash
+python -m venv .venv
+source .venv/bin/activate  # or .\.venv\Scripts\activate on Windows
+pip install -r requirements.txt
 ```
+
+Optional GPU acceleration (CUDA 12.1):
+
+```bash
+pip install -r requirements-cu121.txt
+```
+
+## Quick Start
+
+### Download & Process Dataset
+
+To use the prepared CDNA-CoDET-M4 dataset (recommended):
+
+```bash
+# Will auto-download and cache from HuggingFace
+python run.py --task_name pretrain --model full --train_language all --path CPG
+```
+
+To generate CPGs from raw code (requires Joern):
+
+```bash
+bash scripts/generate_cpgs.sh
+```
+
+### Pretrain (Unsupervised)
+
+Train graph-text encoder with contrastive loss:
+
+```bash
+python run.py --task_name pretrain \
+  --model full \
+  --train_language all \
+  --path CPG \
+  --epochs 100 \
+  --batch_size 64
+```
+
+### Downstream (Supervised Classification)
+
+Fine-tune for code authorship attribution:
+
+```bash
+python run.py --task_name downstream \
+  --model full \
+  --pattern pretrain \
+  --train_language python \
+  --test_languages python,java \
+  --path CPG
+```
+
+See `scripts/` for shell wrappers with full hyperparameters.
+
+## Models
+
+- **`full`**: Graph encoder + text encoder (CodeBERT) with contrastive loss
+- **`codebert`**: Text-only baseline (CodeBERT)
+- **`graph_only`**: Graph-only ablation (no text)
+- **`no_cross`**, **`no_penalty`**, **`no_router`**: Loss function ablations
+
+## Project Structure
+
+- `run.py`: Main CLI entry point
+- `exp/`: Training loops (pretrain, downstream, evaluation)
+- `models/`: Model variants, ablations
+- `layers/`: Heterogeneous graph and text encoders
+- `utils/`: Data conversion (Joern, CPG parsing, tokenization)
+- `scripts/`: Batch processing and shell helpers
+- `CPG/`: Dataset root (auto-populated after first run)
+
+## Citation
+
+If you use this dataset or code, please cite:
+
+```bibtex
+@dataset{cdna_codetm4,
+  title   = {{CDNA-CoDET-M4}: Code Authorship Attribution via Code Property Graphs},
+  authors = {Gusta, Avisenna and Yinqi, Gu and Sia, Sim Kim and Mohamed, Dhameem and Shenghua, Ye},
+  year    = {2025},
+  url     = {https://huggingface.co/datasets/mohameddhameem/CDNA-CoDET-M4}
+}
+```
+
+Original CoDET-M4 reference: https://huggingface.co/datasets/DaniilOr/CoDET-M4
 
