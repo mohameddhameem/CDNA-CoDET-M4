@@ -1,3 +1,10 @@
+"""Training utility helpers.
+
+Notes
+-----
+Contains early stopping and distributed-safe checkpoint utilities.
+"""
+
 import numpy as np
 import torch
 import torch.distributed as dist

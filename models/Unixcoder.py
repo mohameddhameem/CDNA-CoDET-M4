@@ -1,3 +1,10 @@
+"""UniXcoder baseline model.
+
+Notes
+-----
+Defines text-only downstream classification with UniXcoder features.
+"""
+
 import torch
 import torch.nn as nn
 from layers import TextEncoderCLS as TextEncoder

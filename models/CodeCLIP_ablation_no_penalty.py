@@ -1,3 +1,10 @@
+"""Low-penalty ablation model.
+
+Notes
+-----
+Uses reduced decorrelation penalty in pretraining.
+"""
+
 import torch
 import torch.nn as nn
 import torch.nn.functional as F

@@ -1,3 +1,10 @@
+"""Joern-based CPG generation utilities.
+
+Notes
+-----
+Runs Joern workflows and prepares raw code property graphs.
+"""
+
 import os
 import subprocess
 import json

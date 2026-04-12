@@ -1,3 +1,10 @@
+"""Graph encoder layers.
+
+Notes
+-----
+Defines heterogeneous GNN encoders used by model variants.
+"""
+
 import torch
 import torch.nn as nn
 import torch.nn.functional as F

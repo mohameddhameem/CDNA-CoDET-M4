@@ -1,4 +1,9 @@
-"""CodeBERT tokenization/encoding utilities with caching for homo/hetero/code lists."""
+"""CodeBERT tokenization helpers.
+
+Notes
+-----
+Provides cached tokenization and embedding routines for code text.
+"""
 
 from pathlib import Path
 from typing import Dict, Iterable, List, Optional, Tuple

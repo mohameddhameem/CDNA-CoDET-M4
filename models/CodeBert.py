@@ -1,3 +1,10 @@
+"""CodeBERT baseline model.
+
+Notes
+-----
+Provides text-only pretrain placeholder and downstream classifier.
+"""
+
 import torch
 import torch.nn as nn
 from layers import TextEncoder

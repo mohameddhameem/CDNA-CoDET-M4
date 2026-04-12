@@ -1,3 +1,10 @@
+"""AST to PyG conversion utilities.
+
+Notes
+-----
+Builds graph data objects from parsed abstract syntax trees.
+"""
+
 import torch
 import ast
 from torch_geometric.data import Data

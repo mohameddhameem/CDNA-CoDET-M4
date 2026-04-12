@@ -1,3 +1,10 @@
+"""Text encoder layers.
+
+Notes
+-----
+Wraps pretrained code language models for embedding extraction.
+"""
+
 import torch
 import torch.nn as nn
 from transformers import AutoModel, AutoTokenizer

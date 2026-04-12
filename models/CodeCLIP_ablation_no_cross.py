@@ -1,3 +1,10 @@
+"""No-cross-loss ablation model.
+
+Notes
+-----
+Disables cross-modal penalty terms during pretraining.
+"""
+
 import torch
 import torch.nn as nn
 import torch.nn.functional as F

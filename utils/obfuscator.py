@@ -1,7 +1,8 @@
-"""
-Code Obfuscator - Replaces variable and function names in Python/Java
-with 8-character hash codes using the FNV-1a algorithm.
-Identical names always map to the same hash, preserving code correctness.
+"""Identifier obfuscation helpers.
+
+Notes
+-----
+Renames symbols with stable short hashes for Python and Java code.
 """
 
 import re

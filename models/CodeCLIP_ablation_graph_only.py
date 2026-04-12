@@ -1,3 +1,10 @@
+"""Graph-only ablation model.
+
+Notes
+-----
+Removes text branch and trains a graph-focused downstream head.
+"""
+
 import torch
 import torch.nn as nn
 from layers import HeteroGraphEncoder

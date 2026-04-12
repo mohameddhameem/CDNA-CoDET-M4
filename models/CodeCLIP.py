@@ -1,3 +1,10 @@
+"""Full CodeCLIP model.
+
+Notes
+-----
+Implements graph-text pretraining and downstream adaptation.
+"""
+
 import torch
 import torch.nn as nn
 import torch.nn.functional as F

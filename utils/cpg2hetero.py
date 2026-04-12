@@ -1,3 +1,10 @@
+"""CPG to heterogeneous graph conversion.
+
+Notes
+-----
+Parses GraphML records and builds PyG HeteroData datasets.
+"""
+
 import json
 import torch
 import os

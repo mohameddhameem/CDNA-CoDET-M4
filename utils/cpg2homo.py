@@ -1,3 +1,10 @@
+"""CPG to homogeneous graph conversion.
+
+Notes
+-----
+Transforms GraphML records into homogeneous PyG datasets.
+"""
+
 import json
 import torch
 import os

@@ -1,5 +1,13 @@
+"""Training and inference CLI.
+
+Notes
+-----
+Parses arguments and dispatches pretrain/downstream workflows.
+"""
+
 import argparse
 import gc
+import os
 import torch
 import torch.distributed as dist
 from exp.exp_pretrain import ExpPretrain
@@ -11,9 +19,9 @@ def main():
     parser = argparse.ArgumentParser(description='Graph Foundation Model')
 
     # Basic parameters
-    parser.add_argument('--model', type=str, default='samgpt', help='model name')
+    parser.add_argument('--model', type=str, default='full', help='model name')
     parser.add_argument('--train_language', type=str, default='python', choices=['python', 'java', 'cpp', 'all'])
-    parser.add_argument('--test_languages', type=str, default=None,
+    parser.add_argument('--test_languages', type=str, default='',
                         help='test language(s), e.g. python,java or all; default uses --train_language')
     parser.add_argument('--task_name', type=str, default='pretrain', choices=['pretrain', 'downstream','infer'])
     parser.add_argument('--pattern', type=str, default='pretrain', choices=['pretrain','none'])
@@ -55,6 +63,13 @@ def main():
 
     args = parser.parse_args()
 
+    if not args.test_languages:
+        args.test_languages = args.train_language
+
+    dataset_root = os.path.join('.', args.path)
+    if not os.path.isdir(dataset_root):
+        raise FileNotFoundError(f"Dataset path not found: {dataset_root}")
+
     if args.use_gpu and args.use_multi_gpu:
         args.devices = args.devices.replace(' ', '')
         device_ids = args.devices.split(',')
@@ -66,7 +81,7 @@ def main():
 
     from utils.cpg2hetero import CPGHeteroDataset
     dataset = CPGHeteroDataset(
-        root=f'./{args.path}',
+        root=dataset_root,
         force_reload=False)
 
     if args.task_name == 'pretrain':

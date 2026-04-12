@@ -1,3 +1,10 @@
+"""No-router downstream head.
+
+Notes
+-----
+Defines downstream classification without routing components.
+"""
+
 import torch
 import torch.nn as nn
 from models.CodeCLIP import Pretrain

@@ -1,3 +1,10 @@
+"""Dataset split generation helpers.
+
+Notes
+-----
+Creates stratified few-shot train, validation, and test partitions.
+"""
+
 import os
 import json
 import random
