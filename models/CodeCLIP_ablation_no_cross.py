@@ -13,7 +13,10 @@ from models.CodeCLIP_ablation_no_router import Downstream
 
 # Pretraining: contrastive + covariance decorrelation
 class Pretrain(nn.Module):
+    """Pretrain without cross-covariance penalty between modalities."""
+
     def __init__(self,args):
+        """Initialize encoders and contrastive loss settings."""
         super(Pretrain, self).__init__()
         hetero_metadata=args.metadata
         graph_in_dim=args.input_dim # 768
@@ -48,6 +51,7 @@ class Pretrain(nn.Module):
         self.eps = 1e-6
 
     def embed_forward(self, hetero_batch, text_input):
+        """Encode graph and text inputs for contrastive learning."""
         # text_input: [str * batch_size]
         graph_features = self.graph_encoder(
             hetero_batch.x_dict,
@@ -58,6 +62,7 @@ class Pretrain(nn.Module):
         return graph_features, text_features
 
     def spectral_loss(self, features):
+        """Compute isotropy regularization from feature covariance spectrum."""
         z = F.normalize(features, dim=1)
         C = z.T @ z / z.shape[0]
         C = C + self.eps * torch.eye(C.size(0), device=C.device)
@@ -67,6 +72,7 @@ class Pretrain(nn.Module):
         return loss
 
     def loss(self, graph_features, text_features):
+        """Compute contrastive loss plus graph spectral regularization."""
         batch_size = graph_features.shape[0]
         device = graph_features.device
 
@@ -90,7 +96,9 @@ class Pretrain(nn.Module):
         total_loss = contrastive_loss + self.penalty_weight * spectral_reg
 
         return total_loss, contrastive_loss, spectral_reg, None
+
     def forward(self, batch):
+        """Run a pretraining step and return the total objective."""
         hetero_batch = batch
         text_input = batch.code
         graph_features, text_features = self.embed_forward(hetero_batch, text_input)

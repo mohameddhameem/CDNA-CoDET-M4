@@ -14,14 +14,19 @@ class Pretrain(nn.Module):
     """Placeholder for supervised-only setting."""
 
     def __init__(self, *args, **kwargs):
+        """Initialize placeholder pretraining module."""
         super().__init__()
 
     def forward(self, *args, **kwargs):
+        """Raise because this variant does not support pretraining."""
         raise NotImplementedError("Text-only ablation uses Downstream directly for supervised tasks.")
 
 
 class Downstream(nn.Module):
+    """Run downstream classification using frozen UniXcoder features."""
+
     def __init__(self, pretrained_model,args):
+        """Initialize UniXcoder encoder, expert head, and classifier."""
         super(Downstream, self).__init__()
         embed_dim=args.hidden_dim # 768
         num_classes=args.num_classes #2, 6
@@ -44,6 +49,7 @@ class Downstream(nn.Module):
         self.classifier = nn.Linear(hidden_dim, num_classes)
 
     def forward(self, batch):
+        """Encode input code and return downstream logits."""
         text_input = batch.code
         feat_t = self.text_encoder(text_input)
 

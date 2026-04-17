@@ -120,6 +120,7 @@ def obfuscate_java(code: str) -> tuple[str, dict]:
 # ── CLI ───────────────────────────────────────────────────────────────────────
 
 def main():
+    """Parse CLI options and obfuscate a Python or Java source file."""
     parser = argparse.ArgumentParser(
         description="Replace variable/function names in Python or Java code with 8-char hash codes."
     )

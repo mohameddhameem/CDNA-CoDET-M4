@@ -49,6 +49,7 @@ def ast_to_pyg_data(code_str, target_label=None):
         return ""
 
     def visit(node, parent_idx=None, relation=None):
+        """Traverse AST nodes recursively and record graph structure."""
         nonlocal node_list, edge_index, edge_attr
         
         # Current node index
