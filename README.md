@@ -1,18 +1,18 @@
 # CDNA-CoDET-M4
 
-Code authorship attribution using code property graphs and graph-text models.
+Code authorship attribution using Code Property Graphs and graph-text representation learning.
 
-This project extends the original [CoDET-M4 dataset](https://huggingface.co/datasets/DaniilOr/CoDET-M4) 
-by enriching it with **Code Property Graph (CPG)** representations extracted via Joern static analysis. 
-The enhanced dataset is published as **CDNA-CoDET-M4** on HuggingFace and used for training 
-graph-based neural models to attribute code authorship across multiple LLMs.
+This project extends the original [CoDET-M4 dataset](https://huggingface.co/datasets/DaniilOr/CoDET-M4)
+by enriching it with **Code Property Graph (CPG)** representations extracted through Joern-based static analysis.
+The resulting dataset, published as **CDNA-CoDET-M4** on Hugging Face, supports
+the training and evaluation of graph-based neural models for code authorship attribution across multiple LLMs.
 
 ## Dataset
 
-**CDNA-CoDET-M4** is available on HuggingFace:  
+**CDNA-CoDET-M4** is available on Hugging Face:
 https://huggingface.co/datasets/mohameddhameem/CDNA-CoDET-M4
 
-This is an enhanced version of the original CoDET-M4 dataset with two configurations:
+This release enhances the original CoDET-M4 dataset with two configurations:
 
 - **`hetero`**: Full heterogeneous Code Property Graphs (33K+ samples, ~11 GB)
   - Node and edge structures from AST, CFG, PDG
@@ -39,10 +39,10 @@ scalar = load_dataset("mohameddhameem/CDNA-CoDET-M4", "scalar")
 ## Workflow
 
 1. **Source**: Original CoDET-M4 dataset (~150K samples, 6 LLM models + human)
-2. **CPG Extraction**: Joern static analyzer converts code to control/data flow graphs
+2. **CPG Extraction**: Joern static analysis converts source code into control-flow and data-flow graph structures
 3. **Heterogeneous Graph**: Multi-edge-type graph combining AST, CFG, PDG
-4. **Publishing**: Enhanced dataset uploaded to HuggingFace as CDNA-CoDET-M4
-5. **Training**: Graph-text models (CodeCLIP-style) for code authorship classification
+4. **Publishing**: Enhanced dataset uploaded to Hugging Face as CDNA-CoDET-M4
+5. **Training**: Graph-text models (CodeCLIP-style) for code authorship classification and comparative evaluation
 
 ## Setup
 
@@ -65,14 +65,14 @@ pip install -r requirements-cu121.txt
 To use the prepared CDNA-CoDET-M4 dataset (recommended):
 
 ```bash
-# Will auto-download and cache from HuggingFace
+# Will auto-download and cache from Hugging Face
 python run.py --task_name pretrain --model full --train_language all --path CPG
 ```
 
 To generate CPGs from raw code (requires Joern):
 
 ```bash
-bash scripts/generate_cpgs.sh
+bash scripts/generate_cpgs.sh  # Use Git Bash/WSL on Windows
 ```
 
 ### Pretrain (Unsupervised)
@@ -127,7 +127,7 @@ If you use this dataset or code, please cite:
 ```bibtex
 @dataset{cdna_codetm4,
   title   = {{CDNA-CoDET-M4}: Code Authorship Attribution via Code Property Graphs},
-  authors = {Gusta, Avisenna and Yinqi, Gu and Sia, Sim Kim and Mohamed, Dhameem and Shenghua, Ye},
+  author  = {Gusta, Avisenna and Yinqi, Gu and Sia, Sim Kim and Mohamed, Dhameem and Shenghua, Ye},
   year    = {2025},
   url     = {https://huggingface.co/datasets/mohameddhameem/CDNA-CoDET-M4}
 }
