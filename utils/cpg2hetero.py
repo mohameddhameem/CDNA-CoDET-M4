@@ -183,8 +183,11 @@ def _process_single_record(line_data):
 # 4. Dataset Class
 # ==========================================
 class CPGHeteroDataset(InMemoryDataset):
+    """Load and process CPG records into a heterogeneous PyG dataset."""
+
     def __init__(self, root='./CPG', transform=None, pre_transform=None, 
                  force_reload=False, num_workers=1, test_n: int = 0):
+        """Initialize dataset options and load processed tensors if available."""
         
         self.force_reload = force_reload
         self.num_workers = num_workers if num_workers is not None else 1
@@ -212,6 +215,7 @@ class CPGHeteroDataset(InMemoryDataset):
         return ['processed.pt']
 
     def process(self):
+        """Parse raw JSONL records and save processed heterogeneous graphs."""
         raw_path = os.path.join(self.root, 'raw', self.raw_file_names[0])
         if not os.path.exists(raw_path):
             raw_path = os.path.join(self.root, self.raw_file_names[0])
@@ -360,9 +364,7 @@ class CPGHeteroDataset(InMemoryDataset):
             os.remove(data_list_path)
 
     def get_subset(self, **kwargs):
-        """
-        kwargs: like language='python', target='human'
-        """
+        """Return graphs filtered by metadata fields such as language or split."""
         num_graphs = len(self.data.dataset_idx)
         mask = torch.ones(num_graphs, dtype=torch.bool)
         

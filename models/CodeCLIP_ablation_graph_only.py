@@ -14,14 +14,19 @@ class Pretrain(nn.Module):
     """Placeholder for supervised-only setting."""
 
     def __init__(self, *args, **kwargs):
+        """Initialize placeholder pretraining module."""
         super().__init__()
 
     def forward(self, *args, **kwargs):
+        """Raise because this variant does not support pretraining."""
         raise NotImplementedError("Graph-only ablation uses Downstream directly for supervised tasks.")
 
 
 class Downstream(nn.Module):
+    """Run downstream classification using only graph encoder features."""
+
     def __init__(self, pretrained_model, args):
+        """Initialize graph encoder branch and classification head."""
         super(Downstream, self).__init__()
         graph_in_dim=args.input_dim # 768
         embed_dim=args.hidden_dim # 768
@@ -44,6 +49,7 @@ class Downstream(nn.Module):
         self.classifier = nn.Linear(hidden_dim, num_classes)
 
     def forward(self, batch):
+        """Encode graph batch and return logits from graph-only head."""
         hetero_batch = batch
         feat_g = self.graph_encoder(
             hetero_batch.x_dict, hetero_batch.edge_index_dict, hetero_batch.batch_dict

@@ -162,8 +162,11 @@ def _process_single_record(line_data):
 # 3. Dataset Class
 # ==========================================
 class CPGHomoDataset(InMemoryDataset):
+    """Load and process CPG records into homogeneous PyG graphs."""
+
     def __init__(self, root='./CPG', transform=None, pre_transform=None, 
                  force_reload=False, num_workers=1):
+        """Initialize dataset options and load processed data from disk."""
         
         self.force_reload = force_reload
         self.num_workers = num_workers if num_workers is not None else 1
@@ -190,6 +193,7 @@ class CPGHomoDataset(InMemoryDataset):
         return ['processed.pt']
 
     def process(self):
+        """Parse raw records, encode texts, and persist homogeneous graphs."""
         # Locate the raw file
         raw_path = os.path.join(self.root, 'raw', self.raw_file_names[0])
         if not os.path.exists(raw_path):

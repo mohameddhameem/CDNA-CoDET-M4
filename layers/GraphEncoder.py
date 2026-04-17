@@ -12,6 +12,8 @@ from torch_geometric.nn import HeteroConv, SAGEConv, global_mean_pool
 
 
 class HeteroGraphEncoder(nn.Module):
+    """Encode heterogeneous graphs into fixed-size graph embeddings."""
+
     def __init__(self, metadata, in_dim=384, hidden_dim=256, out_dim=256, num_layers=2):
         """
         Args:
@@ -46,6 +48,7 @@ class HeteroGraphEncoder(nn.Module):
         self.out_proj = nn.Linear(hidden_dim, out_dim)
 
     def forward(self, x_dict, edge_index_dict, batch_dict):
+        """Run message passing and pooled readout over heterogeneous node types."""
         # 1. Project input features for all present node types
         h_dict = {
             node_type: self.node_proj[node_type](x) 

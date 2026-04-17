@@ -16,6 +16,7 @@ from root import ROOT_DIR
 
 
 def main():
+    """Parse CLI arguments and run the selected experiment workflow."""
     parser = argparse.ArgumentParser(description='Graph Foundation Model')
 
     # Basic parameters

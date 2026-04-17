@@ -15,12 +15,14 @@ from tqdm.auto import tqdm
 
 
 def _get_device(device: Optional[torch.device] = None) -> torch.device:
+    """Return the provided device or pick CUDA/CPU automatically."""
     if device is not None:
         return device
     return torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 
 def load_codebert(model_name: str = "microsoft/codebert-base", device: Optional[torch.device] = None):
+    """Load CodeBERT tokenizer and model on the selected device."""
     device = _get_device(device)
     tokenizer = AutoTokenizer.from_pretrained(model_name)
     model = AutoModel.from_pretrained(model_name).to(device)
@@ -29,6 +31,7 @@ def load_codebert(model_name: str = "microsoft/codebert-base", device: Optional[
 
 
 def mean_pool(last_hidden_state: torch.Tensor, attention_mask: torch.Tensor) -> torch.Tensor:
+    """Compute mask-aware mean pooling over token embeddings."""
     mask = attention_mask.unsqueeze(-1).type_as(last_hidden_state)
     summed = (last_hidden_state * mask).sum(dim=1)
     counts = mask.sum(dim=1).clamp(min=1e-6)
@@ -44,6 +47,7 @@ def encode_texts(
     max_length: int = 256,
     pool: bool = True,
 ) -> torch.Tensor:
+    """Tokenize and encode text batches into pooled or token-level embeddings."""
     if model is None and pool:
         raise ValueError("pool=True requires a model; set pool=False when model is None")
     device = _get_device(device)
@@ -94,6 +98,7 @@ def encode_homo_graphs(
     max_length: int = 256,
     device: Optional[torch.device] = None,
 ):
+    """Encode node and edge texts for homogeneous graph datasets."""
     out_dir_path = Path(out_dir) / "embeddings" / "homo"
     node_path = out_dir_path / "node_embeddings.pt"
     edge_path = out_dir_path / "edge_embeddings.pt"
@@ -144,6 +149,7 @@ def encode_hetero_graphs(
     max_length: int = 256,
     device: Optional[torch.device] = None,
 ):
+    """Encode per-node-type texts for heterogeneous graph datasets."""
     out_dir_path = Path(out_dir) / "embeddings" / "hetero"
     hetero_path = out_dir_path / "hetero_embeddings.pt"
     

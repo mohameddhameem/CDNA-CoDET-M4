@@ -12,7 +12,10 @@ from layers import HeteroGraphEncoder, TextEncoder
 
 # Pretraining: contrastive + covariance decorrelation
 class Pretrain(nn.Module):
+    """Pretrain graph and text encoders with contrastive objectives."""
+
     def __init__(self,args):
+        """Initialize encoders and loss hyperparameters for pretraining."""
         super(Pretrain, self).__init__()
         hetero_metadata=args.metadata
         graph_in_dim=args.input_dim # 768
@@ -47,6 +50,7 @@ class Pretrain(nn.Module):
         self.eps = 1e-6
 
     def embed_forward(self, hetero_batch, text_input):
+        """Encode graph and text inputs into aligned feature vectors."""
         # text_input: [str * batch_size]
         graph_features = self.graph_encoder(
             hetero_batch.x_dict,
@@ -57,6 +61,7 @@ class Pretrain(nn.Module):
         return graph_features, text_features
 
     def spectral_loss(self, features):
+        """Penalize anisotropic feature spectra for stable embeddings."""
         z = F.normalize(features, dim=1)
         C = z.T @ z / z.shape[0]
         C = C + self.eps * torch.eye(C.size(0), device=C.device)
@@ -66,6 +71,7 @@ class Pretrain(nn.Module):
         return loss
 
     def loss(self, graph_features, text_features):
+        """Compute total pretraining loss and its components."""
         batch_size = graph_features.shape[0]
         device = graph_features.device
 
@@ -100,6 +106,7 @@ class Pretrain(nn.Module):
         return total_loss, contrastive_loss, spectral_reg, cross_loss
 
     def forward(self, batch):
+        """Run a pretraining forward pass and return total loss."""
         hetero_batch = batch
         text_input = batch.code
         graph_features, text_features = self.embed_forward(hetero_batch, text_input)
@@ -171,7 +178,10 @@ class Pretrain(nn.Module):
 #         return logits
 
 class Downstream(nn.Module):
+    """Perform downstream classification with frozen pretrained encoders."""
+
     def __init__(self, pretrained_model, args):
+        """Initialize routing, expert heads, and classification layer."""
         super(Downstream, self).__init__()
         embed_dim = args.hidden_dim
         num_classes = args.num_classes
@@ -205,6 +215,7 @@ class Downstream(nn.Module):
         self.lambda_balance = getattr(args, 'lambda_balance', 0.1)
 
     def forward(self, batch, return_aux=False):
+        """Fuse graph-text features with routing weights and output logits."""
         with torch.no_grad():
             feat_g = self.graph_encoder(
                 batch.x_dict, batch.edge_index_dict, batch.batch_dict

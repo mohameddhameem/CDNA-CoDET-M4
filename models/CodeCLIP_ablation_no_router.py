@@ -11,7 +11,10 @@ from models.CodeCLIP import Pretrain
 
 
 class Downstream(nn.Module):
+    """Perform downstream fusion without a learned routing module."""
+
     def __init__(self, pretrained_model,args):
+        """Initialize frozen encoders, experts, and classifier layers."""
         super(Downstream, self).__init__()
         embed_dim=args.hidden_dim # 768
         num_classes=args.num_classes #2, 6
@@ -38,6 +41,7 @@ class Downstream(nn.Module):
         self.classifier = nn.Linear(hidden_dim, num_classes)
 
     def forward(self, batch):
+        """Fuse expert outputs with fixed weights and return logits."""
         hetero_batch = batch
         text_input = batch.code
         with torch.no_grad():

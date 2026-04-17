@@ -23,6 +23,8 @@ LANG_EXT = {
 }
 
 class JoernRunner:
+    """Run Joern parsing/export commands for code snippets."""
+
     def __init__(self, temp_dir="./temp_joern", joern_path=None):
         """
         Initialize runner with a temporary directory for intermediate processing.
@@ -96,6 +98,7 @@ def worker_func(args):
 
 
 def small_sample(data, seed=42):
+    """Build a smaller stratified subset across languages, splits, and models."""
     sampled_splits = []
     languages = set(data['language'])
     
@@ -133,6 +136,7 @@ def small_sample(data, seed=42):
 
 
 def stratified_by_source(data, target_n, seed=42):
+    """Sample examples proportionally from each source bucket."""
     sources = set(data['source'])
     total = len(data)
     

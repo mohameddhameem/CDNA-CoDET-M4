@@ -11,6 +11,7 @@ from transformers import AutoModel, AutoTokenizer
 
 
 def _mean_pool(last_hidden_state: torch.Tensor, attention_mask: torch.Tensor) -> torch.Tensor:
+    """Mean-pool token embeddings using the attention mask."""
     mask = attention_mask.unsqueeze(-1).type_as(last_hidden_state)
     summed = (last_hidden_state * mask).sum(dim=1)
     counts = mask.sum(dim=1).clamp(min=1e-6)
@@ -26,6 +27,7 @@ class TextEncoder(nn.Module):
         max_length: int = 512,
         freeze: bool = True,
     ):
+        """Load a pretrained text encoder and optional projection layer."""
         super().__init__()
         self.tokenizer = AutoTokenizer.from_pretrained(model_name)
         self.model = AutoModel.from_pretrained(model_name)
@@ -38,6 +40,7 @@ class TextEncoder(nn.Module):
         self.max_length = max_length
 
     def forward(self, text_input):
+        """Encode raw text or tokenized inputs into pooled embeddings."""
         # Accept list/tuple of strings or already tokenized dict/tensors
         if isinstance(text_input, (list, tuple)) and text_input and isinstance(text_input[0], str):
             encoded = self.tokenizer(
@@ -66,11 +69,15 @@ class TextEncoder(nn.Module):
         return self.proj(pooled)
 
     def __del__(self):
+        """Warn when the encoder object is garbage-collected."""
         print("Warning: TextEncoder instance was not explicitly released.")
 
 
 class TextEncoderSimple(nn.Module):
+    """Encode token IDs with a lightweight Transformer encoder."""
+
     def __init__(self, vocab_size=30522, embed_dim=256, num_heads=4, num_layers=2, max_len=512):
+        """Build embedding, positional encoding, and Transformer layers."""
         super(TextEncoderSimple, self).__init__()
         self.embedding = nn.Embedding(vocab_size, embed_dim)
         
@@ -81,6 +88,7 @@ class TextEncoderSimple(nn.Module):
         self.transformer = nn.TransformerEncoder(encoder_layer, num_layers=num_layers)
         
     def forward(self, x):
+        """Transform token sequences and return mean pooled features."""
         # x shape: [batch_size, seq_len]
         x_emb = self.embedding(x)
         seq_len = x.shape[1]
@@ -94,6 +102,8 @@ class TextEncoderSimple(nn.Module):
 
 
 class TextEncoderCLS(nn.Module):
+    """Encode text and return CLS-token pooled representations."""
+
     def __init__(
         self,
         model_name="microsoft/unixcoder-base",
@@ -101,6 +111,7 @@ class TextEncoderCLS(nn.Module):
         max_length=1024,
         freeze=True,
     ):
+        """Load a pretrained CLS-based encoder with optional projection."""
         super().__init__()
 
         self.tokenizer = AutoTokenizer.from_pretrained(model_name)
@@ -115,6 +126,7 @@ class TextEncoderCLS(nn.Module):
         self.max_length = max_length
 
     def forward(self, text_input):
+        """Tokenize text inputs and return projected CLS embeddings."""
         encoded = self.tokenizer(
             list(text_input),
             padding=True,
