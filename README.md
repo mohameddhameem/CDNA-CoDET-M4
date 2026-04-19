@@ -44,6 +44,23 @@ scalar = load_dataset("mohameddhameem/CDNA-CoDET-M4", "scalar")
 4. **Publishing**: Enhanced dataset uploaded to Hugging Face as CDNA-CoDET-M4
 5. **Training**: Graph-text models (CodeCLIP-style) for code authorship classification and comparative evaluation
 
+## Exploratory Analysis (High-Level)
+
+Before full model training, we ran a preliminary exploratory analysis to check whether structural code signals can separate LLM authorship labels.
+At a high level, this exploration covers:
+
+- Dataset overview and class balance checks
+- LLM-only non-parametric statistical tests across structural features
+- 2D structure-space visualization (t-SNE / UMAP)
+- Baseline LLM attribution with a Random Forest classifier
+- Confusion and feature-distribution plots for quick interpretability
+
+Notebook location:
+
+- [Exploration/exploratory_analysis.ipynb](Exploration/exploratory_analysis.ipynb)
+
+For full methodology, complete results, and discussion, please refer to the written paper associated with this project.
+
 ## Setup
 
 ```bash
